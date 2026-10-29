@@ -31,4 +31,11 @@
     <Resource Include="Assets\Fonts\*.ttf" />
   </ItemGroup>
 
+  <!-- The tests are their own project (tests\Hadaf.Tests); keep them out of the app. -->
+  <ItemGroup>
+    <Compile Remove="tests\**" />
+    <None Remove="tests\**" />
+    <Page Remove="tests\**" />
+  </ItemGroup>
+
 </Project>

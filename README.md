@@ -18,6 +18,25 @@ dotnet restore -r win-x64 --source %USERPROFILE%\.nuget\packages -p:SelfContaine
 dotnet publish -c Release -r win-x64 --self-contained true --no-restore -p:RuntimeFrameworkVersion=10.0.9 -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o release\portable
 ```
 
+## Code
+
+- `Models.cs`: goals, settings, categories, and the data file (`Store`) with its backups.
+- `Planner.cs`: the rules, with no window attached: views and groups, ticking off, daily renewals,
+  streaks, reminders, saving an edit, statistics. The time is passed in, so tests can run them at any moment.
+- `MainWindow.xaml.cs` and one file per page: `MainWindow.List.cs`, `.Editor.cs`, `.Stats.cs`, `.Settings.cs`,
+  `.Data.cs` (saving, backups, export/import). `ViewModels.cs` holds what the templates bind to.
+- `Theme.cs` and `Styles.xaml`: colours, glass, the design system. `Emoji.cs`: colour emoji. `Loc.cs`: Arabic and English.
+
+## Tests
+
+```
+dotnet run --project tests\Hadaf.Tests
+```
+
+Runs every test in a scratch data folder and exits with the number that failed; add part of a test's name
+(for example `Planner` or `Monthly`) to run only those. The runner is part of the project, so there is
+no test framework to download.
+
 ## Data
 
 `%APPDATA%\Hadaf\data.json`, with hourly backups in `%APPDATA%\Hadaf\backups` (newest 20 kept).
