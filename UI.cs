@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Controls;
 
-namespace Hadaf
+namespace Quest
 {
     /// <summary>Attached properties shared by control templates.</summary>
     public static class UI

@@ -1,6 +1,6 @@
 using System;
 
-namespace Hadaf.Tests
+namespace Quest.Tests
 {
     static class GoalTests
     {

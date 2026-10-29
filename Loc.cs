@@ -6,7 +6,7 @@ using System.Linq;
 using System.Windows.Data;
 using System.Windows.Markup;
 
-namespace Hadaf
+namespace Quest
 {
     /// <summary>Arabic / English string table. Bind with {local:L key}.</summary>
     public sealed class Loc : INotifyPropertyChanged

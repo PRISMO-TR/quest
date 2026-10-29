@@ -10,7 +10,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Microsoft.Win32;
 
-namespace Hadaf
+namespace Quest
 {
     public partial class MainWindow : Window
     {

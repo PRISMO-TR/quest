@@ -1,10 +1,10 @@
-<Window x:Class="Hadaf.MainWindow"
+<Window x:Class="Quest.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:Hadaf"
+        xmlns:local="clr-namespace:Quest"
         Title="Quest" Width="420" Height="760" MinWidth="360" MinHeight="480"
         WindowStartupLocation="CenterScreen" Background="Transparent"
-        Icon="pack://application:,,,/Assets/hadaf.ico"
+        Icon="pack://application:,,,/Assets/quest.ico"
         UseLayoutRounding="True" FontSize="14" FontFamily="{StaticResource AppFont}"
         TextOptions.TextFormattingMode="Ideal">
 
@@ -331,7 +331,7 @@
             <Grid>
                 <StackPanel Orientation="Horizontal">
                     <Button x:Name="MenuBtn" AutomationProperties.Name="{local:L a11y_menu}" Style="{StaticResource Btn.Caption}" Content="&#xE700;" FontSize="16" Click="Menu_Click"/>
-                    <Image Source="pack://application:,,,/Assets/hadaf.png" Width="16" Height="16" Margin="4,0,0,0"
+                    <Image Source="pack://application:,,,/Assets/quest.png" Width="16" Height="16" Margin="4,0,0,0"
                            RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center"/>
                     <TextBlock Text="{local:L app}" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
@@ -789,7 +789,7 @@
                         BorderBrush="{DynamicResource CardStroke}" BorderThickness="1">
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Top" Margin="20,20,20,12">
-                            <Image Source="pack://application:,,,/Assets/hadaf.png" Width="40" Height="40"
+                            <Image Source="pack://application:,,,/Assets/quest.png" Width="40" Height="40"
                                    RenderOptions.BitmapScalingMode="HighQuality"/>
                             <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
                                 <TextBlock Style="{StaticResource T.Title}" Text="{local:L app}"/>

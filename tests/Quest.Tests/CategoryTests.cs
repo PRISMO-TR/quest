@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Hadaf.Tests
+namespace Quest.Tests
 {
     static class CategoryTests
     {

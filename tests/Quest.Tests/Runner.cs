@@ -6,7 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace Hadaf.Tests
+namespace Quest.Tests
 {
     /// <summary>A test: a static method without parameters that throws when something is wrong.</summary>
     [AttributeUsage(AttributeTargets.Method)]
@@ -42,7 +42,7 @@ namespace Hadaf.Tests
 
     /// <summary>
     /// Runs every [Test] (or the ones whose name contains one of the arguments) and exits with the number that
-    /// failed. No test framework to download: dotnet run --project tests\Hadaf.Tests
+    /// failed. No test framework to download: dotnet run --project tests\Quest.Tests
     /// </summary>
     static class Runner
     {
@@ -51,9 +51,9 @@ namespace Hadaf.Tests
         {
             Console.OutputEncoding = Encoding.UTF8;
             // Store reads its folder once, so point it at a scratch folder before anything touches it.
-            var dir = Path.Combine(Path.GetTempPath(), "hadaf-tests-" + Guid.NewGuid().ToString("N")[..8]);
+            var dir = Path.Combine(Path.GetTempPath(), "quest-tests-" + Guid.NewGuid().ToString("N")[..8]);
             Directory.CreateDirectory(dir);
-            Environment.SetEnvironmentVariable("HADAF_DATA_DIR", dir);
+            Environment.SetEnvironmentVariable("QUEST_DATA_DIR", dir);
 
             var tests = typeof(Runner).Assembly.GetTypes()
                 .SelectMany(t => t.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))

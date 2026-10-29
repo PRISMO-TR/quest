@@ -1,9 +1,9 @@
-# Generates Assets\hadaf.png and Assets\hadaf.ico (PNG-framed, multi-size).
+# Generates Assets\quest.png and Assets\quest.ico (PNG-framed, multi-size).
 param([string]$OutDir = (Join-Path $PSScriptRoot '..\Assets'))
 Add-Type -AssemblyName System.Drawing
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 
-function New-HadafBitmap([int]$s) {
+function New-QuestBitmap([int]$s) {
     $bmp = New-Object System.Drawing.Bitmap $s, $s
     $g = [System.Drawing.Graphics]::FromImage($bmp)
     $g.SmoothingMode = 'AntiAlias'
@@ -34,15 +34,15 @@ function New-HadafBitmap([int]$s) {
 $sizes = 16, 24, 32, 48, 64, 256
 $pngs = @()
 foreach ($s in $sizes) {
-    $b = New-HadafBitmap $s
+    $b = New-QuestBitmap $s
     $ms = New-Object System.IO.MemoryStream
     $b.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
-    if ($s -eq 256) { $b.Save((Join-Path $OutDir 'hadaf.png'), [System.Drawing.Imaging.ImageFormat]::Png) }
+    if ($s -eq 256) { $b.Save((Join-Path $OutDir 'quest.png'), [System.Drawing.Imaging.ImageFormat]::Png) }
     $b.Dispose()
     $pngs += , $ms.ToArray()
 }
 
-$fs = [System.IO.File]::Create((Join-Path $OutDir 'hadaf.ico'))
+$fs = [System.IO.File]::Create((Join-Path $OutDir 'quest.ico'))
 $bw = New-Object System.IO.BinaryWriter $fs
 $bw.Write([uint16]0); $bw.Write([uint16]1); $bw.Write([uint16]$sizes.Count)
 $offset = 6 + 16 * $sizes.Count

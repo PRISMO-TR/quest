@@ -8,7 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Effects;
 using Microsoft.Win32;
 
-namespace Hadaf
+namespace Quest
 {
     /// <summary>
     /// Glass backdrop + colour tokens. Text sits on a tinted layer whose minimum opacity is
@@ -347,13 +347,13 @@ namespace Hadaf
 
     public static class AutoStart
     {
-        // Test runs (HADAF_DATA_DIR) write to a key Windows never reads, so they can't change what starts with Windows.
-        static string RunKey => Environment.GetEnvironmentVariable("HADAF_DATA_DIR") == null
+        // Test runs (QUEST_DATA_DIR) write to a key Windows never reads, so they can't change what starts with Windows.
+        static string RunKey => Environment.GetEnvironmentVariable("QUEST_DATA_DIR") == null
             ? @"Software\Microsoft\Windows\CurrentVersion\Run"
-            : @"Software\Hadaf\TestRun";
+            : @"Software\QuestTestRun";
 
         const string Name = "Quest";
-        const string OldName = "Hadaf"; // the entry's name before the app was renamed
+        const string OldName = Legacy.Name; // the entry earlier versions made
 
         public static bool IsEnabled()
         {

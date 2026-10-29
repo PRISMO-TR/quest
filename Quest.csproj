@@ -7,13 +7,12 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <RootNamespace>Hadaf</RootNamespace>
-    <!-- The app is called Quest; the code keeps its first name, Hadaf, which users never see. -->
+    <RootNamespace>Quest</RootNamespace>
     <AssemblyName>Quest</AssemblyName>
     <AssemblyTitle>Quest</AssemblyTitle>
     <Product>Quest</Product>
     <Version>1.4.0</Version>
-    <ApplicationIcon>Assets\hadaf.ico</ApplicationIcon>
+    <ApplicationIcon>Assets\quest.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- keep the footprint small -->
@@ -27,12 +26,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\hadaf.ico" />
-    <Resource Include="Assets\hadaf.png" />
+    <Resource Include="Assets\quest.ico" />
+    <Resource Include="Assets\quest.png" />
     <Resource Include="Assets\Fonts\*.ttf" />
   </ItemGroup>
 
-  <!-- The tests are their own project (tests\Hadaf.Tests); keep them out of the app. -->
+  <!-- The tests are their own project (tests\Quest.Tests); keep them out of the app. -->
   <ItemGroup>
     <Compile Remove="tests\**" />
     <None Remove="tests\**" />

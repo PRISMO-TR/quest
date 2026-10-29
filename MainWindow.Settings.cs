@@ -8,7 +8,7 @@ using System.Windows.Media;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 
-namespace Hadaf
+namespace Quest
 {
     // The settings page, including the category editor and the accent colour.
     public partial class MainWindow

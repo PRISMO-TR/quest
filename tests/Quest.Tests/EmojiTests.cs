@@ -3,7 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 
-namespace Hadaf.Tests
+namespace Quest.Tests
 {
     /// <summary>Which emoji get drawn in colour. Skipped (passing) on a PC without Segoe UI Emoji.</summary>
     static class EmojiTests

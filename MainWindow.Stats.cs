@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Windows.Media;
 
-namespace Hadaf
+namespace Quest
 {
     // The statistics page.
     public partial class MainWindow

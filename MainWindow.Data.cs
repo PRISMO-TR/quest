@@ -10,7 +10,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Microsoft.Win32;
 
-namespace Hadaf
+namespace Quest
 {
     // Saving and data safety: failed saves, notices, backups, export and import.
     public partial class MainWindow

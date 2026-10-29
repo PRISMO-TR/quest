@@ -5,7 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
-namespace Hadaf
+namespace Quest
 {
     // The goal list: views, cards, the composer, the snackbar and reminders.
     public partial class MainWindow

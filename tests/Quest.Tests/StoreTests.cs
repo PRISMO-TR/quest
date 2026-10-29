@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 
-namespace Hadaf.Tests
+namespace Quest.Tests
 {
     /// <summary>The data file, its backups and export/import, in the scratch folder the runner set up.</summary>
     static class StoreTests
@@ -85,7 +85,7 @@ namespace Hadaf.Tests
             Assert.Equal(6, back.Settings.Categories.Count, "with the categories");
         }
 
-        // ---- the rename from Hadaf to Quest ----
+        // ---- the data folder of earlier versions, under the app's old name ----
 
         static string NewAppData() => Directory.CreateDirectory(Path.Combine(Store.Dir, "appdata-" + Guid.NewGuid().ToString("N")[..8])).FullName;
 
@@ -93,7 +93,7 @@ namespace Hadaf.Tests
         static void DataFolderFromBeforeTheRenameIsCarriedOver()
         {
             var appData = NewAppData();
-            var old = Path.Combine(appData, "Hadaf");
+            var old = Path.Combine(appData, Legacy.Name);
             Directory.CreateDirectory(Path.Combine(old, "backups"));
             File.WriteAllText(Path.Combine(old, "data.json"), "{}");
             File.WriteAllText(Path.Combine(old, "backups", "data-20270102-090000.json"), "{}");
@@ -109,7 +109,7 @@ namespace Hadaf.Tests
         static void DataFolderStaysWhereItIsWhileAFileInItIsOpen()
         {
             var appData = NewAppData();
-            var old = Path.Combine(appData, "Hadaf");
+            var old = Path.Combine(appData, Legacy.Name);
             Directory.CreateDirectory(old);
             var file = Path.Combine(old, "data.json");
             File.WriteAllText(file, "{}");

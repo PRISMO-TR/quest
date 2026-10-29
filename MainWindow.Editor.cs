@@ -7,7 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 
-namespace Hadaf
+namespace Quest
 {
     // The editor page: a goal's details, schedule, repeat, steps and time.
     public partial class MainWindow

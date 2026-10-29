@@ -6,7 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 
-namespace Hadaf
+namespace Quest
 {
     /// <summary>
     /// Colour emoji. WPF draws Segoe UI Emoji in one colour only, so this reads the font's colour layers (its COLR

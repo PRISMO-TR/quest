@@ -17,9 +17,6 @@ Goals and daily tasks for Windows: deadlines, steps, reminders, streaks. WPF on 
 - Arabic and English (right to left), dark and light, glass on Windows 11, high-contrast themes,
   Windows text size, keyboard and screen reader support.
 
-The app was first called Hadaf (هدف); the code still uses that name, and the first start of Quest moves
-the old data folder and start-with-Windows entry over to the new name.
-
 ## Build
 
 Small build (needs the .NET 10 Desktop Runtime on the PC), output `release\Quest.exe`:
@@ -48,7 +45,7 @@ dotnet publish -c Release -r win-x64 --self-contained true --no-restore -p:Runti
 ## Tests
 
 ```
-dotnet run --project tests\Hadaf.Tests
+dotnet run --project tests\Quest.Tests
 ```
 
 Runs every test in a scratch data folder and exits with the number that failed; add part of a test's name
@@ -70,8 +67,8 @@ storage, where Quest started normally never looks. Quest checks where its files 
 
 ## Testing without touching real data
 
-Set `HADAF_DATA_DIR` to a scratch folder. That copy then uses its own data, its own single-instance lock,
-and a test registry key instead of the real start-with-Windows entry. Adding `HADAF_TEST_OFFSCREEN=1` opens
+Set `QUEST_DATA_DIR` to a scratch folder. That copy then uses its own data, its own single-instance lock,
+and a test registry key instead of the real start-with-Windows entry. Adding `QUEST_TEST_OFFSCREEN=1` opens
 the window off-screen and unfocused, for automated runs.
 
 ## License

@@ -10,7 +10,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows.Media;
 
-namespace Hadaf
+namespace Quest
 {
     public abstract class Notify : INotifyPropertyChanged
     {
@@ -385,6 +385,16 @@ namespace Hadaf
         }
     }
 
+    /// <summary>
+    /// The app's name before it became Quest. It is kept only where earlier versions left something under it: their
+    /// data folder and start-with-Windows entry, which Quest takes over on its first start, and the single-instance
+    /// lock, so an earlier version and this one never run at once on the same data.
+    /// </summary>
+    public static class Legacy
+    {
+        public const string Name = "Hadaf";
+    }
+
     public enum LoadProblem { RestoredFromBackup, Unreadable }
 
     /// <summary>The data file could not be used as it was at start-up; the app tells the user what happened.</summary>
@@ -396,18 +406,19 @@ namespace Hadaf
     /// </summary>
     public static class Store
     {
-        public static readonly string Dir = Environment.GetEnvironmentVariable("HADAF_DATA_DIR")
+        public static readonly string Dir = Environment.GetEnvironmentVariable("QUEST_DATA_DIR")
             ?? Folder(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
 
         /// <summary>
-        /// The data folder under <paramref name="appData"/>. The app used to be called Hadaf: the first time, its folder is
-        /// renamed to the new name, backups included. If that can't happen (a file in it is open elsewhere, say), the
-        /// old folder stays in use, so no data is ever left behind; the next start tries again.
+        /// The data folder under <paramref name="appData"/>. Earlier versions kept it under the app's old name
+        /// (<see cref="Legacy"/>): the first time, that folder is renamed, backups included. If that can't happen (a file
+        /// in it is open elsewhere, say), the old folder stays in use, so no data is ever left behind; the next start
+        /// tries again.
         /// </summary>
         public static string Folder(string appData)
         {
             var dir = Path.Combine(appData, "Quest");
-            var old = Path.Combine(appData, "Hadaf");
+            var old = Path.Combine(appData, Legacy.Name);
             if (Directory.Exists(dir) || !Directory.Exists(old)) return dir;
             try
             {

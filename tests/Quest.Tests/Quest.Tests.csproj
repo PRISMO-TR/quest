@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Run from the app folder: "dotnet run" with the project option set to tests\Hadaf.Tests (see README.md). -->
+  <!-- Run from the app folder: "dotnet run" with the project option set to tests\Quest.Tests (see README.md). -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -8,12 +8,12 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <RootNamespace>Hadaf.Tests</RootNamespace>
+    <RootNamespace>Quest.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Hadaf.csproj" />
+    <ProjectReference Include="..\..\Quest.csproj" />
   </ItemGroup>
 
 </Project>

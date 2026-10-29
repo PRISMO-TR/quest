@@ -5,17 +5,17 @@ using System.Windows;
 using Forms = System.Windows.Forms;
 using Drawing = System.Drawing;
 
-namespace Hadaf
+namespace Quest
 {
     public partial class App : Application
     {
-        // A custom data folder (HADAF_DATA_DIR) gets its own instance lock. The id must be the same in
+        // A custom data folder (QUEST_DATA_DIR) gets its own instance lock. The id must be the same in
         // every process, so it can't use string.GetHashCode (randomized per process in .NET).
-        static readonly string Suffix = Environment.GetEnvironmentVariable("HADAF_DATA_DIR") is string d
+        static readonly string Suffix = Environment.GetEnvironmentVariable("QUEST_DATA_DIR") is string d
             ? "." + StableId(d) : "";
-        // Still named after the app's first name, so a copy from before the rename and this one never run together.
-        static readonly string MutexName = "Hadaf.SingleInstance.v1" + Suffix;
-        static readonly string ShowEventName = "Hadaf.ShowWindow.v1" + Suffix;
+        // Named after the app's old name (see Legacy), so an earlier version and this one never run together.
+        static readonly string MutexName = Legacy.Name + ".SingleInstance.v1" + Suffix;
+        static readonly string ShowEventName = Legacy.Name + ".ShowWindow.v1" + Suffix;
 
         static Forms.NotifyIcon tray;
         static MainWindow main;
@@ -45,16 +45,16 @@ namespace Hadaf
                     Dispatcher.BeginInvoke(new Action(() => main?.ShowFromTray()));
             }) { IsBackground = true }.Start();
 
-            // CPU rendering skips the Direct3D device and roughly halves committed memory. HADAF_GPU=1 opts back in.
-            if (Environment.GetEnvironmentVariable("HADAF_GPU") != "1")
+            // CPU rendering skips the Direct3D device and roughly halves committed memory. QUEST_GPU=1 opts back in.
+            if (Environment.GetEnvironmentVariable("QUEST_GPU") != "1")
                 System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
             // A start-with-Windows entry must follow the app if its folder moved (test runs leave it alone).
-            if (Environment.GetEnvironmentVariable("HADAF_DATA_DIR") == null) AutoStart.Repair();
+            if (Environment.GetEnvironmentVariable("QUEST_DATA_DIR") == null) AutoStart.Repair();
             base.OnStartup(e);
             main = new MainWindow();
             MainWindow = main;
             // Automated test runs can open off-screen and unfocused, so they never get in the user's way.
-            if (Environment.GetEnvironmentVariable("HADAF_DATA_DIR") != null && Environment.GetEnvironmentVariable("HADAF_TEST_OFFSCREEN") == "1")
+            if (Environment.GetEnvironmentVariable("QUEST_DATA_DIR") != null && Environment.GetEnvironmentVariable("QUEST_TEST_OFFSCREEN") == "1")
             {
                 main.ShowActivated = false;
                 main.WindowStartupLocation = WindowStartupLocation.Manual;
@@ -97,7 +97,7 @@ namespace Hadaf
 
         static Drawing.Icon LoadTrayIcon()
         {
-            var info = GetResourceStream(new Uri("pack://application:,,,/Assets/hadaf.png"));
+            var info = GetResourceStream(new Uri("pack://application:,,,/Assets/quest.png"));
             using var src = new Drawing.Bitmap(info.Stream);
             var size = Forms.SystemInformation.SmallIconSize;
             using var bmp = new Drawing.Bitmap(src, size);
