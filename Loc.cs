@@ -329,6 +329,9 @@ namespace Hadaf
             ["step_to_heading"] = new[] { "اجعلها عنواناً", "Make it a heading" },
             ["heading_to_step"] = new[] { "اجعلها خطوة", "Make it a step" },
 
+            ["host_title"] = new[] { "كويست يعمل من داخل {0}", "Quest is running inside {0}" },
+            ["host_text"] = new[] { "شغّل {0} كويست، لذلك يحفظ Windows ما تغيّره هنا في مساحة {0} الخاصة، ولن تجده عندما تفتح كويست بنفسك. اخرج منه وافتحه بنفسك من مجلده أو من اختصاره.",
+                                    "{0} started Quest, so Windows keeps what you change here in {0}'s private storage, and you won't find it when you open Quest yourself. Exit, then open Quest yourself from its folder or a shortcut." },
             ["startup_title"] = new[] { "لا تفوّتك التذكيرات", "Don't miss your reminders" },
             ["startup_text"] = new[] { "التذكيرات تعمل فقط عندما يكون كويست مفتوحاً. شغّله تلقائياً مع بدء Windows، مخفياً بجانب الساعة.",
                                        "Reminders only work while Quest is running. Start it automatically with Windows, hidden next to the clock." },

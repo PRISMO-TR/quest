@@ -89,6 +89,7 @@ namespace Hadaf
             ApplyLanguage();
             ApplyTextScale();
             ReportLoadIssue();
+            WarnIfInsideAnotherApp();
             OfferStartWithWindows();
             Dispatcher.BeginInvoke(new Action(CheckReminders), DispatcherPriority.ApplicationIdle);
         }
@@ -131,8 +132,9 @@ namespace Hadaf
 
         public void StartHidden()
         {
-            // Window stays hidden; reminders keep running from the tray. A data problem still needs telling.
-            if (Store.Issue != null) App.Notify(NoticeTitle.Text, NoticeText.Text);
+            // Window stays hidden; reminders keep running from the tray. A data problem still needs telling,
+            // and so does running inside another app.
+            if (Store.Issue != null || HostPackage.Name != null) App.Notify(NoticeTitle.Text, NoticeText.Text);
             Native.Trim();
         }
 

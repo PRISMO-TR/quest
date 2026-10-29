@@ -59,6 +59,16 @@ namespace Hadaf
             Save();
         }
 
+        /// <summary>
+        /// Started from inside another app (see <see cref="HostPackage"/>), Quest's saves stay in that app's private
+        /// storage. Say so at once, with a way out, before goals are added here and seem lost later.
+        /// </summary>
+        void WarnIfInsideAnotherApp()
+        {
+            if (HostPackage.Name is not string host) return;
+            ShowNotice("host", "warn", L.F("host_title", host), L.F("host_text", host), L["tray_exit"], () => App.ExitApp());
+        }
+
         /// <summary>Shows the notice bar. <paramref name="tone"/> is "info", "warn" or "danger".</summary>
         void ShowNotice(string key, string tone, string title, string text, string actionText = null, Action action = null)
         {
@@ -87,7 +97,8 @@ namespace Hadaf
         /// </summary>
         void OfferStartWithWindows()
         {
-            if (S.StartupAsked || noticeKey != null || !data.Goals.Any(g => !g.Done && g.Due.HasValue)) return;
+            // Inside another app, the entry would only land in that app's private copy of the registry.
+            if (S.StartupAsked || noticeKey != null || HostPackage.Name != null || !data.Goals.Any(g => !g.Done && g.Due.HasValue)) return;
             if (AutoStart.IsEnabled())
             {
                 S.StartupAsked = true;

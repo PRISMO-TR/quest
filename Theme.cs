@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -294,6 +295,53 @@ namespace Hadaf
                 EmptyWorkingSet(p.Handle);
             }
             catch { }
+        }
+    }
+
+    /// <summary>
+    /// The app Quest was started from inside, if any. A packaged (MSIX) app, or a shell it runs, can start Quest inside its
+    /// own container: Windows then puts every new file Quest saves under AppData, and the start-with-Windows entry,
+    /// in that app's private storage (%LOCALAPPDATA%\Packages\&lt;app&gt;\LocalCache), where Quest opened normally never
+    /// looks. Quest gets no package identity there, so the way to tell is to save a small file and see where it lands.
+    /// </summary>
+    public static class HostPackage
+    {
+        /// <summary>That app's name ("Contoso" from the folder "Contoso_8wekyb3d8bbwe"), or null when Quest's files land where they should.</summary>
+        public static string Name { get; } = Find(Store.Dir);
+
+        static string Find(string dir)
+        {
+            string probe = null;
+            try
+            {
+                var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                var full = Path.GetFullPath(dir);
+                string Under(string root, string mirror) => full.StartsWith(root + "\\", StringComparison.OrdinalIgnoreCase)
+                    ? Path.Combine(mirror, full[(root.Length + 1)..]) : null;
+                var mirrored = Under(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Roaming")
+                               ?? Under(local, "Local");
+                if (mirrored == null) return null; // only AppData is ever redirected
+                Directory.CreateDirectory(dir);
+                var name = $".where-{Environment.ProcessId}-{Guid.NewGuid():N}.tmp";
+                probe = Path.Combine(dir, name);
+                File.WriteAllText(probe, "");
+                foreach (var package in Directory.EnumerateDirectories(Path.Combine(local, "Packages")))
+                {
+                    if (!File.Exists(Path.Combine(package, "LocalCache", mirrored, name))) continue;
+                    var family = Path.GetFileName(package);
+                    int cut = family.LastIndexOf('_');
+                    return cut > 0 ? family[..cut] : family;
+                }
+                return null;
+            }
+            catch
+            {
+                return null; // can't tell: say nothing rather than raise a false alarm
+            }
+            finally
+            {
+                try { if (probe != null) File.Delete(probe); } catch { }
+            }
         }
     }
 
