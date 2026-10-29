@@ -72,8 +72,48 @@ namespace Hadaf.Tests
             Assert.Equal(6, back.Settings.Categories.Count, "with the categories");
         }
 
+        // ---- the rename from Hadaf to Quest ----
+
+        static string NewAppData() => Directory.CreateDirectory(Path.Combine(Store.Dir, "appdata-" + Guid.NewGuid().ToString("N")[..8])).FullName;
+
         [Test]
-        static void ImportTakesOnlyHadafFiles()
+        static void DataFolderFromBeforeTheRenameIsCarriedOver()
+        {
+            var appData = NewAppData();
+            var old = Path.Combine(appData, "Hadaf");
+            Directory.CreateDirectory(Path.Combine(old, "backups"));
+            File.WriteAllText(Path.Combine(old, "data.json"), "{}");
+            File.WriteAllText(Path.Combine(old, "backups", "data-20270102-090000.json"), "{}");
+            var dir = Store.Folder(appData);
+            Assert.Equal(Path.Combine(appData, "Quest"), dir, "the new name");
+            Assert.True(File.Exists(Path.Combine(dir, "data.json")) && File.Exists(Path.Combine(dir, "backups", "data-20270102-090000.json")),
+                "data and backups came along");
+            Assert.False(Directory.Exists(old), "nothing left behind");
+            Assert.Equal(dir, Store.Folder(appData), "next time there is nothing to do");
+        }
+
+        [Test]
+        static void DataFolderStaysWhereItIsWhileAFileInItIsOpen()
+        {
+            var appData = NewAppData();
+            var old = Path.Combine(appData, "Hadaf");
+            Directory.CreateDirectory(old);
+            var file = Path.Combine(old, "data.json");
+            File.WriteAllText(file, "{}");
+            using (new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.None))
+                Assert.Equal(old, Store.Folder(appData), "keeps using the old folder");
+            Assert.Equal(Path.Combine(appData, "Quest"), Store.Folder(appData), "and moves it once it is free");
+        }
+
+        [Test]
+        static void NewInstallUsesTheNewName()
+        {
+            var appData = NewAppData();
+            Assert.Equal(Path.Combine(appData, "Quest"), Store.Folder(appData), "no old folder");
+        }
+
+        [Test]
+        static void ImportTakesOnlyItsOwnFiles()
         {
             Empty();
             var path = Path.Combine(Store.Dir, "other.json");

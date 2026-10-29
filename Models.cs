@@ -386,7 +386,28 @@ namespace Hadaf
     public static class Store
     {
         public static readonly string Dir = Environment.GetEnvironmentVariable("HADAF_DATA_DIR")
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Hadaf");
+            ?? Folder(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
+
+        /// <summary>
+        /// The data folder under <paramref name="appData"/>. The app used to be called Hadaf: the first time, its folder is
+        /// renamed to the new name, backups included. If that can't happen (a file in it is open elsewhere, say), the
+        /// old folder stays in use, so no data is ever left behind; the next start tries again.
+        /// </summary>
+        public static string Folder(string appData)
+        {
+            var dir = Path.Combine(appData, "Quest");
+            var old = Path.Combine(appData, "Hadaf");
+            if (Directory.Exists(dir) || !Directory.Exists(old)) return dir;
+            try
+            {
+                Directory.Move(old, dir);
+                return dir;
+            }
+            catch
+            {
+                return old;
+            }
+        }
         public static string BackupDir => Path.Combine(Dir, "backups");
         static string FilePath => Path.Combine(Dir, "data.json");
         const int KeepBackups = 20;
@@ -529,7 +550,7 @@ namespace Hadaf
         public static void Export(AppData data, string path) =>
             File.WriteAllText(path, JsonSerializer.Serialize(data, new JsonSerializerOptions(Options) { WriteIndented = true }));
 
-        /// <summary>Reads a file picked for import; null unless it is a Hadaf data file.</summary>
+        /// <summary>Reads a file picked for import; null unless it is one of the app's data files.</summary>
         public static AppData ReadForImport(string path)
         {
             try

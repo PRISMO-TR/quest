@@ -156,7 +156,7 @@ namespace Hadaf
             var dialog = new SaveFileDialog
             {
                 Filter = L["file_filter"], DefaultExt = ".json", InitialDirectory = Documents,
-                FileName = $"Hadaf-{DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}.json",
+                FileName = $"Quest-{DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}.json",
             };
             if (dialog.ShowDialog(this) == true) ExportTo(dialog.FileName);
         }

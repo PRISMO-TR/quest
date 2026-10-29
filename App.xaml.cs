@@ -13,6 +13,7 @@ namespace Hadaf
         // every process, so it can't use string.GetHashCode (randomized per process in .NET).
         static readonly string Suffix = Environment.GetEnvironmentVariable("HADAF_DATA_DIR") is string d
             ? "." + StableId(d) : "";
+        // Still named after the app's first name, so a copy from before the rename and this one never run together.
         static readonly string MutexName = "Hadaf.SingleInstance.v1" + Suffix;
         static readonly string ShowEventName = "Hadaf.ShowWindow.v1" + Suffix;
 
@@ -67,7 +68,7 @@ namespace Hadaf
 
         static void CreateTray()
         {
-            tray = new Forms.NotifyIcon { Icon = LoadTrayIcon(), Text = "Hadaf", Visible = true };
+            tray = new Forms.NotifyIcon { Icon = LoadTrayIcon(), Text = Loc.I["app"], Visible = true };
             tray.MouseClick += (s, e) => { if (e.Button == Forms.MouseButtons.Left) main?.ShowFromTray(); };
             tray.BalloonTipClicked += (s, e) =>
             {
@@ -80,6 +81,7 @@ namespace Hadaf
         public static void UpdateTrayMenu()
         {
             if (tray == null) return;
+            tray.Text = Loc.I["app"];
             var menu = new Forms.ContextMenuStrip
             {
                 RightToLeft = Loc.I.IsAr ? Forms.RightToLeft.Yes : Forms.RightToLeft.No,

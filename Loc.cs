@@ -109,7 +109,7 @@ namespace Hadaf
 
         static readonly Dictionary<string, string[]> T = new()
         {
-            ["app"] = new[] { "هدف", "Hadaf" },
+            ["app"] = new[] { "كويست", "Quest" },
             ["tagline"] = new[] { "حقّق أهدافك في موعدها", "Hit your goals on time" },
             ["lang_switch"] = new[] { "English", "العربية" },
 
@@ -201,7 +201,7 @@ namespace Hadaf
             ["set_startup"] = new[] { "التشغيل مع بدء Windows", "Start with Windows" },
             ["glass_unsupported"] = new[] { "الزجاج يتطلب Windows 11", "Glass requires Windows 11" },
 
-            ["tray_open"] = new[] { "فتح هدف", "Open Hadaf" },
+            ["tray_open"] = new[] { "فتح كويست", "Open Quest" },
             ["tray_exit"] = new[] { "خروج", "Exit" },
             ["tray_running"] = new[] { "يعمل في الخلفية وسيذكّرك بمواعيدك", "Running in the background, reminders stay on" },
             ["n_soon"] = new[] { "⏰ اقترب الموعد", "⏰ Deadline approaching" },
@@ -236,7 +236,7 @@ namespace Hadaf
             ["set_startup_desc"] = new[] { "يبدأ مخفياً بجانب الساعة", "Starts hidden in the tray" },
             ["fx_desc"] = new[] { "الأكريليك يُظهر ما خلف النافذة، والميكا يأخذ لون خلفية سطح المكتب",
                                   "Acrylic shows what is behind the window; Mica picks up your wallpaper colour" },
-            ["about"] = new[] { "هدف · الإصدار 1.1", "Hadaf · version 1.1" },
+            ["about"] = new[] { "كويست · الإصدار 1.3", "Quest · version 1.3" },
             ["overdue_n"] = new[] { "{0} متأخر", "{0} overdue" },
             ["empty_action"] = new[] { "أضف هدفاً", "Add a goal" },
 
@@ -295,10 +295,10 @@ namespace Hadaf
             ["import"] = new[] { "استيراد…", "Import…" },
             ["transfer_desc"] = new[] { "التصدير يحفظ كل أهدافك في ملف تختاره، لتنقلها إلى جهاز آخر مثلاً. الاستيراد يستبدل أهدافك الحالية بما في الملف، بعد أخذ نسخة احتياطية منها.",
                                         "Export saves all your goals to a file you choose, for example to move them to another PC. Import replaces your current goals with the file's, after backing them up." },
-            ["file_filter"] = new[] { "بيانات هدف (*.json)|*.json", "Hadaf data (*.json)|*.json" },
+            ["file_filter"] = new[] { "بيانات كويست (*.json)|*.json", "Quest data (*.json)|*.json" },
             ["exported"] = new[] { "صُدّرت البيانات إلى {0}", "Exported to {0}" },
             ["export_failed"] = new[] { "تعذّر التصدير: {0}", "Couldn't export: {0}" },
-            ["import_invalid"] = new[] { "هذا الملف ليس ملف بيانات من هدف، أو أنه تالف", "That isn't a Hadaf data file, or it's damaged" },
+            ["import_invalid"] = new[] { "هذا الملف ليس ملف بيانات من كويست، أو أنه تالف", "That isn't a Quest data file, or it's damaged" },
             ["imported"] = new[] { "استُوردت البيانات: {0}", "Imported: {0}" },
 
             ["a11y_menu"] = new[] { "القائمة", "Menu" },
@@ -314,10 +314,10 @@ namespace Hadaf
             ["a11y_remove_step"] = new[] { "حذف الخطوة", "Remove step" },
 
             ["startup_title"] = new[] { "لا تفوّتك التذكيرات", "Don't miss your reminders" },
-            ["startup_text"] = new[] { "التذكيرات تعمل فقط عندما يكون هدف مفتوحاً. شغّله تلقائياً مع بدء Windows، مخفياً بجانب الساعة.",
-                                       "Reminders only work while Hadaf is running. Start it automatically with Windows, hidden next to the clock." },
+            ["startup_text"] = new[] { "التذكيرات تعمل فقط عندما يكون كويست مفتوحاً. شغّله تلقائياً مع بدء Windows، مخفياً بجانب الساعة.",
+                                       "Reminders only work while Quest is running. Start it automatically with Windows, hidden next to the clock." },
             ["startup_enable"] = new[] { "تشغيل مع Windows", "Start with Windows" },
-            ["startup_done"] = new[] { "سيعمل هدف تلقائياً مع Windows", "Hadaf will start with Windows" },
+            ["startup_done"] = new[] { "سيعمل كويست تلقائياً مع Windows", "Quest will start with Windows" },
             ["startup_failed"] = new[] { "تعذّر تفعيل التشغيل مع Windows", "Couldn't turn on start with Windows" },
 
             ["nav_daily"] = new[] { "المهام اليومية", "Daily tasks" },

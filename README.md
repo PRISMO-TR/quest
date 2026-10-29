@@ -1,16 +1,18 @@
-# Hadaf · هدف
+# Quest · كويست
 
 Goals and daily tasks for Windows: deadlines, steps, reminders, streaks. WPF on .NET 10, Arabic and English.
+The app was first called Hadaf (هدف); the code still uses that name, and the first start of Quest moves
+the old data folder and start-with-Windows entry over to the new name.
 
 ## Build
 
-Small build (needs the .NET 10 Desktop Runtime on the PC), output `release\Hadaf.exe`:
+Small build (needs the .NET 10 Desktop Runtime on the PC), output `release\Quest.exe`:
 
 ```
 dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o release
 ```
 
-Portable build (runs on any Windows 10/11 x64 PC, ~150 MB), output `release\portable\Hadaf.exe`.
+Portable build (runs on any Windows 10/11 x64 PC, ~150 MB), output `release\portable\Quest.exe`.
 Restoring from the local package cache only keeps it offline:
 
 ```
@@ -39,7 +41,7 @@ no test framework to download.
 
 ## Data
 
-`%APPDATA%\Hadaf\data.json`, with hourly backups in `%APPDATA%\Hadaf\backups` (newest 20 kept).
+`%APPDATA%\Quest\data.json`, with hourly backups in `%APPDATA%\Quest\backups` (newest 20 kept).
 An unreadable data file is never overwritten: it is kept as `data.unreadable-*.json` and the newest good backup is restored.
 
 Settings → Export writes a readable copy to a file of your choice; Import replaces the goals, history and categories

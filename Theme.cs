@@ -304,10 +304,13 @@ namespace Hadaf
             ? @"Software\Microsoft\Windows\CurrentVersion\Run"
             : @"Software\Hadaf\TestRun";
 
+        const string Name = "Quest";
+        const string OldName = "Hadaf"; // the entry's name before the app was renamed
+
         public static bool IsEnabled()
         {
             using var k = Registry.CurrentUser.OpenSubKey(RunKey);
-            return k?.GetValue("Hadaf") is string;
+            return k?.GetValue(Name) is string || k?.GetValue(OldName) is string;
         }
 
         static string Command => $"\"{Environment.ProcessPath}\" --tray";
@@ -315,18 +318,28 @@ namespace Hadaf
         public static void Set(bool on)
         {
             using var k = Registry.CurrentUser.CreateSubKey(RunKey);
-            if (on) k.SetValue("Hadaf", Command);
-            else k.DeleteValue("Hadaf", false);
+            k.DeleteValue(OldName, false);
+            if (on) k.SetValue(Name, Command);
+            else k.DeleteValue(Name, false);
         }
 
-        /// <summary>If start-with-Windows is on but points at an old location of the app, point it here.</summary>
+        /// <summary>
+        /// Keeps start-with-Windows pointing at this copy of the app: after it was moved, and after the rename
+        /// (the entry made under the old name moves to the new one).
+        /// </summary>
         public static void Repair()
         {
             try
             {
                 using var k = Registry.CurrentUser.OpenSubKey(RunKey, true);
-                if (k?.GetValue("Hadaf") is string current && !string.Equals(current, Command, StringComparison.OrdinalIgnoreCase))
-                    k.SetValue("Hadaf", Command);
+                if (k == null) return;
+                if (k.GetValue(OldName) is string)
+                {
+                    k.SetValue(Name, Command);
+                    k.DeleteValue(OldName, false);
+                }
+                else if (k.GetValue(Name) is string current && !string.Equals(current, Command, StringComparison.OrdinalIgnoreCase))
+                    k.SetValue(Name, Command);
             }
             catch { }
         }
