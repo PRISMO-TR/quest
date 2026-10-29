@@ -33,6 +33,19 @@ namespace Hadaf.Tests
         }
 
         [Test]
+        static void PartHeadingsLoadBackAndStepsAreWrittenAsBefore()
+        {
+            Empty();
+            var data = Sample("Footprinting");
+            data.Goals[0].SubTasks.Add(new SubTask { Title = "Introduction", IsHeading = true });
+            data.Goals[0].SubTasks.Add(new SubTask { Title = "Enumeration Principles", Done = true });
+            Assert.Equal(null, Store.Save(data), "save error");
+            Assert.Equal(2, File.ReadAllText(MainFile).Split("IsHeading").Length, "only the heading carries the flag");
+            var steps = Store.Load().Goals.Single().SubTasks;
+            Assert.True(steps[0].IsHeading && !steps[1].IsHeading && steps[1].Done, "heading and step back as they were");
+        }
+
+        [Test]
         static void DamagedFileIsKeptAndTheNewestBackupRestored()
         {
             Empty();

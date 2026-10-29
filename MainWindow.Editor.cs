@@ -122,6 +122,14 @@ namespace Hadaf
             if ((sender as FrameworkElement)?.DataContext is SubTask s) draft?.SubTasks.Remove(s);
         }
 
+        /// <summary>Turns a step into a part heading over the steps below it, or back into a step.</summary>
+        void StepKind_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is not SubTask s) return;
+            s.IsHeading = !s.IsHeading;
+            s.Done = false; // a heading has nothing to tick
+        }
+
         // ---- schedule & repeat ----
 
         string Summary(Goal g) =>

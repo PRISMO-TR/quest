@@ -83,10 +83,22 @@
                                       Background="Transparent" MouseLeftButtonUp="StepList_MouseLeftButtonUp">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <local:ActionCheckBox Style="{StaticResource Check.Round}" IsChecked="{Binding Done}" Click="Sub_Click"
-                                                          Margin="0,4" AutomationProperties.Name="{Binding Title}">
-                                        <TextBlock local:Emoji.Text="{Binding Title}" FontSize="13.5" TextWrapping="Wrap"/>
-                                    </local:ActionCheckBox>
+                                    <Grid>
+                                        <local:ActionCheckBox x:Name="step" Style="{StaticResource Check.Round}" IsChecked="{Binding Done}"
+                                                              Click="Sub_Click" Margin="0,4" AutomationProperties.Name="{Binding Title}">
+                                            <TextBlock local:Emoji.Text="{Binding Title}" FontSize="13.5" TextWrapping="Wrap"/>
+                                        </local:ActionCheckBox>
+                                        <!-- A part heading over the steps that follow it -->
+                                        <TextBlock x:Name="heading" Style="{StaticResource T.Label}" local:Emoji.Text="{Binding Title}"
+                                                   TextWrapping="Wrap" Margin="0,10,0,2" Visibility="Collapsed"
+                                                   AutomationProperties.HeadingLevel="Level3"/>
+                                    </Grid>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsHeading}" Value="True">
+                                            <Setter TargetName="step" Property="Visibility" Value="Collapsed"/>
+                                            <Setter TargetName="heading" Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -177,22 +189,41 @@
             </DataTemplate.Triggers>
         </DataTemplate>
 
-        <!-- Editable step: 36 high, remove button appears on hover -->
+        <!--
+            Editable step: 36 high; its buttons (heading or step, remove) appear on hover or while the row has
+            keyboard focus. A part heading has no tick box and a semibold title.
+        -->
         <DataTemplate x:Key="StepTpl">
             <Grid x:Name="row" Height="36" Background="Transparent">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <CheckBox Style="{StaticResource Check.Round}" IsChecked="{Binding Done}" VerticalAlignment="Center"/>
-                <TextBox Grid.Column="1" Style="{StaticResource Input.Bare}" Margin="12,0,8,0"
+                <CheckBox x:Name="check" Style="{StaticResource Check.Round}" IsChecked="{Binding Done}" VerticalAlignment="Center"/>
+                <TextBox x:Name="text" Grid.Column="1" Style="{StaticResource Input.Bare}" Margin="12,0,8,0"
                          Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"/>
-                <Button x:Name="remove" Grid.Column="2" Style="{StaticResource Btn.IconSm}" Content="&#xE711;" FontSize="10"
+                <Button x:Name="kind" Grid.Column="2" Style="{StaticResource Btn.IconSm}" Content="&#xE8D2;" FontSize="12"
+                        Visibility="Hidden" AutomationProperties.Name="{local:L step_to_heading}"
+                        ToolTip="{Binding (AutomationProperties.Name), RelativeSource={RelativeSource Self}}" Click="StepKind_Click"/>
+                <Button x:Name="remove" Grid.Column="3" Style="{StaticResource Btn.IconSm}" Content="&#xE711;" FontSize="10"
                         Visibility="Hidden" AutomationProperties.Name="{local:L a11y_remove_step}" Click="RemoveStep_Click"/>
             </Grid>
             <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsHeading}" Value="True">
+                    <Setter TargetName="check" Property="Visibility" Value="Collapsed"/>
+                    <Setter TargetName="text" Property="Margin" Value="0,0,8,0"/>
+                    <Setter TargetName="text" Property="FontWeight" Value="SemiBold"/>
+                    <Setter TargetName="kind" Property="Content" Value="&#xE9D5;"/>
+                    <Setter TargetName="kind" Property="AutomationProperties.Name" Value="{local:L heading_to_step}"/>
+                </DataTrigger>
                 <Trigger SourceName="row" Property="IsMouseOver" Value="True">
+                    <Setter TargetName="kind" Property="Visibility" Value="Visible"/>
+                    <Setter TargetName="remove" Property="Visibility" Value="Visible"/>
+                </Trigger>
+                <Trigger SourceName="row" Property="IsKeyboardFocusWithin" Value="True">
+                    <Setter TargetName="kind" Property="Visibility" Value="Visible"/>
                     <Setter TargetName="remove" Property="Visibility" Value="Visible"/>
                 </Trigger>
             </DataTemplate.Triggers>

@@ -312,6 +312,8 @@ namespace Hadaf
             ["a11y_prev_month"] = new[] { "الشهر السابق", "Previous month" },
             ["a11y_next_month"] = new[] { "الشهر التالي", "Next month" },
             ["a11y_remove_step"] = new[] { "حذف الخطوة", "Remove step" },
+            ["step_to_heading"] = new[] { "اجعلها عنواناً", "Make it a heading" },
+            ["heading_to_step"] = new[] { "اجعلها خطوة", "Make it a step" },
 
             ["startup_title"] = new[] { "لا تفوّتك التذكيرات", "Don't miss your reminders" },
             ["startup_text"] = new[] { "التذكيرات تعمل فقط عندما يكون كويست مفتوحاً. شغّله تلقائياً مع بدء Windows، مخفياً بجانب الساعة.",

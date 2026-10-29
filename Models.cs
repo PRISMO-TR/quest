@@ -125,9 +125,18 @@ namespace Hadaf
     public class SubTask : Notify
     {
         string _title = "";
-        bool _done;
+        bool _done, _heading;
         public string Title { get => _title; set => Set(ref _title, value); }
         public bool Done { get => _done; set => Set(ref _done, value); }
+        /// <summary>
+        /// A part heading: a label over the steps that follow it, with nothing to tick. Steps are written to the
+        /// file as before (the flag only appears on headings), so older versions read headings as plain steps.
+        /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool IsHeading { get => _heading; set => Set(ref _heading, value); }
+
+        /// <summary>What UI Automation reads for the step's row in the open card.</summary>
+        public override string ToString() => Title;
     }
 
     public class Goal : Notify
@@ -210,10 +219,12 @@ namespace Hadaf
         [JsonIgnore] public string RecurrenceName => Loc.I["r_" + Recurrence.ToString().ToLowerInvariant()];
         /// <summary>"Daily", or the chosen weekdays when a daily task skips some days.</summary>
         [JsonIgnore] public string RepeatText => IsDaily && Days != AllDays ? Loc.I.DaysText(Days, true) : RecurrenceName;
-        [JsonIgnore] public bool HasSubTasks => SubTasks.Count > 0;
-        [JsonIgnore] public int DoneSteps => SubTasks.Count(s => s.Done);
-        [JsonIgnore] public double Progress => HasSubTasks ? 100.0 * DoneSteps / SubTasks.Count : 0;
-        [JsonIgnore] public string ProgressText => $"{DoneSteps}/{SubTasks.Count}";
+        // Part headings only group the steps; progress counts the steps themselves.
+        [JsonIgnore] public int StepCount => SubTasks.Count(s => !s.IsHeading);
+        [JsonIgnore] public bool HasSubTasks => StepCount > 0;
+        [JsonIgnore] public int DoneSteps => SubTasks.Count(s => s.Done && !s.IsHeading);
+        [JsonIgnore] public double Progress => HasSubTasks ? 100.0 * DoneSteps / StepCount : 0;
+        [JsonIgnore] public string ProgressText => $"{DoneSteps}/{StepCount}";
 
         // Card meta: when it is due (or when it was done).
         [JsonIgnore] public bool HasWhen => Done ? CompletedAt.HasValue : DoneToday || Due.HasValue;

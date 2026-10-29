@@ -79,6 +79,27 @@ namespace Hadaf.Tests
             Assert.False(new Goal { Due = today.AddHours(9), Done = true }.CanSnooze, "finished");
             Assert.False(new Goal().CanSnooze, "no deadline");
         }
+
+        [Test]
+        static void PartHeadingsAreNotCountedAsSteps()
+        {
+            var g = new Goal();
+            g.SubTasks.Add(new SubTask { Title = "Introduction", IsHeading = true, Done = true }); // a hand-edited file
+            g.SubTasks.Add(new SubTask { Title = "Enumeration Principles", Done = true });
+            g.SubTasks.Add(new SubTask { Title = "Enumeration Methodology" });
+            g.SubTasks.Add(new SubTask { Title = "Host Based Enumeration", IsHeading = true });
+            g.SubTasks.Add(new SubTask { Title = "FTP" });
+            g.SubTasks.Add(new SubTask { Title = "SMB" });
+            Assert.Equal(4, g.StepCount, "steps");
+            Assert.Equal(1, g.DoneSteps, "done");
+            Assert.Equal("1/4", g.ProgressText, "progress text");
+            Assert.Equal(25.0, g.Progress, "progress");
+
+            var headingsOnly = new Goal();
+            headingsOnly.SubTasks.Add(new SubTask { Title = "Part", IsHeading = true });
+            Assert.False(headingsOnly.HasSubTasks, "headings alone leave nothing to tick");
+            Assert.Equal(0.0, headingsOnly.Progress, "and no progress");
+        }
     }
 
     static class TimeInputTests
