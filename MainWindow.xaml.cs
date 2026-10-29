@@ -131,6 +131,7 @@ namespace Hadaf
 
             if (RollDailies()) Save();
             ApplyLanguage();
+            ApplyTextScale();
             ReportLoadIssue();
             OfferStartWithWindows();
             Dispatcher.BeginInvoke(new Action(CheckReminders), DispatcherPriority.ApplicationIdle);
@@ -270,8 +271,43 @@ namespace Hadaf
 
         void OnSystemPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
         {
-            if (e.Category != UserPreferenceCategory.General && e.Category != UserPreferenceCategory.Color) return;
-            Dispatcher.BeginInvoke(new Action(() => { Theme.Apply(this, S); RefreshCards(); }));
+            if (e.Category != UserPreferenceCategory.General && e.Category != UserPreferenceCategory.Color
+                && e.Category != UserPreferenceCategory.Accessibility) return;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                Theme.Apply(this, S);
+                ApplyTextScale();
+                RefreshCards();
+            }));
+        }
+
+        /// <summary>
+        /// Follows Windows' "Text size" accessibility setting (WPF ignores it on its own) by zooming the whole
+        /// window content, so larger text never gets clipped.
+        /// </summary>
+        void ApplyTextScale()
+        {
+            double factor = 1;
+            try
+            {
+                using var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Accessibility");
+                if (k?.GetValue("TextScaleFactor") is int percent && percent > 100) factor = Math.Min(2.25, percent / 100.0);
+            }
+            catch { }
+            SetTextScale(factor);
+        }
+
+        double baseMinWidth, baseMinHeight; // the window's smallest size at 100% text
+
+        void SetTextScale(double factor)
+        {
+            Root.LayoutTransform = factor > 1 ? new ScaleTransform(factor, factor) : Transform.Identity;
+            // Zooming takes room from the layout, so the smallest window grows with it (as far as the screen allows);
+            // otherwise cards would be cut off at the edge.
+            if (baseMinWidth == 0) (baseMinWidth, baseMinHeight) = (MinWidth, MinHeight);
+            var work = SystemParameters.WorkArea;
+            MinWidth = Math.Min(baseMinWidth * factor, work.Width);
+            MinHeight = Math.Min(baseMinHeight * factor, work.Height - 24);
         }
 
         void Min_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
@@ -305,6 +341,9 @@ namespace Hadaf
             var prev = page;
             bool forward = next != HomePage;
             page = next;
+            // The menu belongs to the list; while editing or in settings, leaving goes through Back/Close
+            // (so a half-written goal can't be dropped by jumping elsewhere).
+            MenuBtn.IsEnabled = next == HomePage;
             next.Visibility = Visibility.Visible;
             Slide(next, 0, 1, forward ? 32 : -32, 0, null);
             Slide(prev, 1, 0, 0, forward ? -32 : 32, () =>
@@ -473,7 +512,9 @@ namespace Hadaf
             if (cat != null) q = q.Where(g => g.Category == cat);
             q = view switch
             {
-                "today" => q.Where(g => g.DoneToday || (!g.IsChecked && g.Due?.Date == today)),
+                // Today: everything still open that is due today or already late, plus what was finished today.
+                "today" => q.Where(g => g.DoneToday || (g.Done && g.CompletedAt?.Date == today)
+                                     || (!g.IsChecked && g.Due.HasValue && g.Due.Value.Date <= today)),
                 "daily" => q.Where(g => g.IsDaily),
                 "upcoming" => q.Where(g => !g.Done && !g.IsDaily && g.Due > now && g.Due <= now.AddDays(7)),
                 "overdue" => q.Where(g => g.IsOverdue),
@@ -524,6 +565,7 @@ namespace Hadaf
                 {
                     "done" => goals.OrderByDescending(g => g.CompletedAt),
                     "daily" => SortedDaily(goals),
+                    "today" => goals.OrderBy(g => g.IsChecked).ThenBy(g => g.Due ?? DateTime.MaxValue).ThenByDescending(g => g.Priority),
                     _ => Sorted(goals),
                 });
                 return list;
@@ -563,7 +605,8 @@ namespace Hadaf
             GoalList.Visibility = stats ? Visibility.Collapsed : Visibility.Visible;
             SearchToggle.Visibility = stats ? Visibility.Collapsed : Visibility.Visible;
             SearchRow.Visibility = !stats && searchOpen ? Visibility.Visible : Visibility.Collapsed;
-            Composer.Visibility = stats || view == "done" ? Visibility.Collapsed : Visibility.Visible;
+            // Nothing typed in Overdue could ever show up there (a new goal isn't late yet), so no composer.
+            Composer.Visibility = stats || view == "done" || view == "overdue" ? Visibility.Collapsed : Visibility.Visible;
             QuickAdd.Tag = L[daily ? "composer_daily_ph" : "composer_ph"];
             EmptyIcon.Text = daily ? "" : "";
             EmptyTitle.Text = L[daily ? "empty_daily_title" : "empty_title"];
@@ -603,7 +646,7 @@ namespace Hadaf
                 n.Count = n.Key switch
                 {
                     "all" => active.Count,
-                    "today" => active.Count(g => !g.DoneToday && g.Due?.Date == today),
+                    "today" => active.Count(g => !g.IsChecked && g.Due.HasValue && g.Due.Value.Date <= today),
                     "daily" => active.Count(g => g.IsDaily && !g.DoneToday && g.Due?.Date == today),
                     "upcoming" => active.Count(g => !g.IsDaily && g.Due > now && g.Due <= now.AddDays(7)),
                     "overdue" => overdue,
@@ -758,6 +801,56 @@ namespace Hadaf
             if (GoalOf(sender) is Goal g) ToggleDone(g);
         }
 
+        // ---- keyboard and right-click on a card ----
+
+        /// <summary>Enter opens, Space ticks, Delete removes; Shift+F10 or the menu key opens the card's menu.</summary>
+        void Card_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.OriginalSource != sender || GoalOf(sender) is not Goal g) return;
+            switch (e.Key)
+            {
+                case Key.Enter: OpenEditor(g); break;
+                case Key.Space: ToggleDone(g); break;
+                case Key.Delete: DeleteGoal(g); break;
+                default: return;
+            }
+            e.Handled = true;
+        }
+
+        void CtxEdit_Click(object sender, RoutedEventArgs e)
+        {
+            if (GoalOf(sender) is Goal g) OpenEditor(g);
+        }
+
+        void CtxDone_Click(object sender, RoutedEventArgs e)
+        {
+            if (GoalOf(sender) is Goal g) ToggleDone(g);
+        }
+
+        void CtxDelete_Click(object sender, RoutedEventArgs e)
+        {
+            if (GoalOf(sender) is Goal g) DeleteGoal(g);
+        }
+
+        /// <summary>Moves the deadline to tomorrow at the same time, with a way to take it back.</summary>
+        void CtxSnooze_Click(object sender, RoutedEventArgs e)
+        {
+            if (GoalOf(sender) is not Goal g || !g.CanSnooze) return;
+            var before = (g.Due, g.NotifiedBefore, g.NotifiedDue);
+            g.Due = DateTime.Today.AddDays(1) + g.Due.Value.TimeOfDay;
+            g.NotifiedBefore = g.NotifiedDue = false;
+            g.RefreshAll();
+            Save();
+            Refresh();
+            ShowSnack(L.F("snoozed", L.FormatDate(g.Due.Value)), L["undo"], () =>
+            {
+                (g.Due, g.NotifiedBefore, g.NotifiedDue) = before;
+                g.RefreshAll();
+                Save();
+                Refresh();
+            });
+        }
+
         void ToggleDone(Goal g)
         {
             var now = DateTime.Now;
@@ -771,21 +864,35 @@ namespace Hadaf
             }
             else
             {
-                data.History.Add(Record(g, now));
+                var record = Record(g, now);
+                data.History.Add(record);
                 if (g.IsRecurring)
                 {
+                    // Remember the occurrence being closed, so an accidental tick can be undone.
+                    var before = (Due: g.Due, Steps: g.SubTasks.Select(s => s.Done).ToArray(), g.NotifiedBefore, g.NotifiedDue);
                     var next = g.Due ?? now;
-                    do next = Goal.Advance(next, g.Recurrence); while (next <= now);
+                    do next = g.NextAfter(next); while (next <= now);
                     g.Due = next;
                     foreach (var s in g.SubTasks) s.Done = false;
                     g.NotifiedBefore = g.NotifiedDue = false;
-                    ShowSnack(L.F("next_occ", L.FormatDate(next)));
+                    ShowSnack(L.F("next_occ", L.FormatDate(next)), L["undo"], () =>
+                    {
+                        if (g.Due != next) return;   // changed since; nothing left to undo
+                        g.Due = before.Due;
+                        for (int i = 0; i < Math.Min(before.Steps.Length, g.SubTasks.Count); i++) g.SubTasks[i].Done = before.Steps[i];
+                        g.NotifiedBefore = before.NotifiedBefore;
+                        g.NotifiedDue = before.NotifiedDue;
+                        data.History.Remove(record);
+                        g.RefreshAll();
+                        Save();
+                        Refresh();
+                    });
                 }
                 else
                 {
                     g.Done = true;
                     g.CompletedAt = now;
-                    ShowSnack(L["great"]);
+                    ShowSnack(L["great"], L["undo"], () => { if (g.Done) ToggleDone(g); });
                 }
             }
             g.RefreshAll();
@@ -813,7 +920,14 @@ namespace Hadaf
             foreach (var s in g.SubTasks) s.Done = false;
             g.NotifiedBefore = g.NotifiedDue = false;
             UpdateStreaks();
-            ShowSnack(g.Streak >= 2 ? L.F("daily_done_streak", L.DaysPhrase(g.Streak)) : L["daily_done"]);
+            ShowSnack(g.Streak >= 2 ? L.F("daily_done_streak", L.DaysPhrase(g.Streak)) : L["daily_done"], L["undo"], () =>
+            {
+                if (!g.DoneToday) return;
+                ToggleDaily(g, DateTime.Now);
+                g.RefreshAll();
+                Save();
+                Refresh();
+            });
         }
 
         static CompletionRecord Record(Goal g, DateTime now) => new()
@@ -878,7 +992,7 @@ namespace Hadaf
         void CheckReminders()
         {
             var now = DateTime.Now;
-            var lines = new List<(string Head, string Body)>();
+            var lines = new List<(string Head, string Body, string GoalId)>();
             foreach (var g in data.Goals.Where(g => !g.Done && g.Due.HasValue))
             {
                 // Any-time daily tasks have no clock to warn about; ones done today are settled.
@@ -886,19 +1000,29 @@ namespace Hadaf
                 if (!g.NotifiedDue && now >= g.Due.Value)
                 {
                     g.NotifiedDue = g.NotifiedBefore = true;
-                    lines.Add((L["n_due"], g.Title));
+                    lines.Add((L["n_due"], g.Title, g.Id));
                 }
                 else if (!g.NotifiedBefore && g.RemindMinutes > 0 && now >= g.Due.Value.AddMinutes(-g.RemindMinutes))
                 {
                     g.NotifiedBefore = true;
-                    lines.Add((L["n_soon"], $"{g.Title} · {L.F("left_fmt", L.Dur(g.Due.Value - now))}"));
+                    lines.Add((L["n_soon"], $"{g.Title} · {L.F("left_fmt", L.Dur(g.Due.Value - now))}", g.Id));
                 }
             }
             if (lines.Count == 0) return;
             Save();
             if (!S.Notifications) return;
-            if (lines.Count == 1) App.Notify(lines[0].Head, lines[0].Body);
+            // Clicking a single reminder opens that goal; a batch opens the list.
+            if (lines.Count == 1) App.Notify(lines[0].Head, lines[0].Body, lines[0].GoalId);
             else App.Notify(L.F("n_many", lines.Count), string.Join("\n", lines.Take(5).Select(l => "• " + l.Body)));
+        }
+
+        /// <summary>Opens a goal from outside the list (a clicked reminder).</summary>
+        public void OpenGoal(string id)
+        {
+            var g = data.Goals.FirstOrDefault(x => x.Id == id);
+            if (g == null) return;
+            if (page == SettingsPage) ShowPage(HomePage);
+            if (page == HomePage) OpenEditor(g);
         }
 
         // ================= editor page =================
@@ -979,6 +1103,10 @@ namespace Hadaf
                 d.CompletedAt = null;
             }
             else d.AnyTime = false;
+            // A monthly goal belongs to the day the user picked; only a newly picked date moves it.
+            if (d.Recurrence != Recurrence.Monthly || !d.Due.HasValue) d.RepeatDay = 0;
+            else if (original == null || original.Recurrence != Recurrence.Monthly || original.Due?.Date != d.Due.Value.Date)
+                d.RepeatDay = d.Due.Value.Day;
             syncing = false;
 
             bool rescheduled = original == null || original.Due != d.Due || original.RemindMinutes != d.RemindMinutes;
@@ -1093,7 +1221,7 @@ namespace Hadaf
             for (int i = 0; i < 7; i++)
             {
                 var day = (DayOfWeek)((first + i) % 7);
-                var toggle = new CheckBox
+                var toggle = new ActionCheckBox
                 {
                     Style = style,
                     Tag = day,
@@ -1163,7 +1291,7 @@ namespace Hadaf
 
         void PickDate(DateTime d)
         {
-            var time = draft.Due?.TimeOfDay ?? ParseTime(TimeBox.Text) ?? new TimeSpan(18, 0, 0);
+            var time = draft.Due?.TimeOfDay ?? TimeInput.Parse(TimeBox.Text) ?? new TimeSpan(18, 0, 0);
             draft.Due = d.Date + time;
             calMonth = new DateTime(d.Year, d.Month, 1);
             UpdateDueUi(true);
@@ -1195,21 +1323,25 @@ namespace Hadaf
         void TimeBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (syncing || draft?.Due == null) return;
-            if (ParseTime(TimeBox.Text) is TimeSpan t)
+            var t = TimeInput.Parse(TimeBox.Text);
+            // Say so when the text isn't a time, instead of silently ignoring it.
+            TimeError.Visibility = t == null && TimeBox.Text.Trim().Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            if (t is TimeSpan time)
             {
-                draft.Due = draft.Due.Value.Date + t;
+                draft.Due = draft.Due.Value.Date + time;
                 if (draft.IsDaily) draft.Due = draft.NextRun(DailyFrom(draft), true);
                 DueSummary.Text = Summary(draft);
             }
         }
 
-        static TimeSpan? ParseTime(string s)
+        /// <summary>Leaving the box with something that isn't a time puts back the time that is in effect.</summary>
+        void TimeBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            s = (s ?? "").Trim().Replace('.', ':');
-            if (TimeSpan.TryParseExact(s, new[] { @"h\:mm", @"hh\:mm" }, CultureInfo.InvariantCulture, out var t)
-                && t < TimeSpan.FromDays(1))
-                return t;
-            return null;
+            if (draft?.Due == null || TimeInput.Parse(TimeBox.Text) != null) return;
+            syncing = true;
+            TimeBox.Text = draft.Due.Value.ToString("HH:mm", CultureInfo.InvariantCulture);
+            syncing = false;
+            TimeError.Visibility = Visibility.Collapsed;
         }
 
         // ================= statistics =================

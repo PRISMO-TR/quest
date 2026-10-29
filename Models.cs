@@ -200,13 +200,34 @@ namespace Hadaf
         [JsonIgnore] public Brush UrgencyBrush => Palette.B(0xFF000000 | UrgencyRgb);
         [JsonIgnore] public Brush UrgencySoft => Palette.B(0x2E000000 | UrgencyRgb);
 
-        public static DateTime Advance(DateTime d, Recurrence r) => r switch
+        /// <summary>Day of the month a monthly goal belongs to (0 = the day of its current deadline).</summary>
+        public int RepeatDay { get; set; }
+
+        /// <summary>
+        /// The occurrence after <paramref name="d"/>. Monthly goals keep their day of the month: a goal on the
+        /// 31st falls on the last day of shorter months and returns to the 31st afterwards, instead of drifting.
+        /// </summary>
+        public DateTime NextAfter(DateTime d)
         {
-            Recurrence.Daily => d.AddDays(1),
-            Recurrence.Weekly => d.AddDays(7),
-            Recurrence.Monthly => d.AddMonths(1),
-            _ => d,
-        };
+            switch (Recurrence)
+            {
+                case Recurrence.Daily: return d.AddDays(1);
+                case Recurrence.Weekly: return d.AddDays(7);
+                case Recurrence.Monthly:
+                    var month = d.AddMonths(1);
+                    int day = Math.Min(RepeatDay > 0 ? RepeatDay : d.Day, DateTime.DaysInMonth(month.Year, month.Month));
+                    return new DateTime(month.Year, month.Month, day) + d.TimeOfDay;
+                default: return d;
+            }
+        }
+
+        // ---- card actions (right-click menu) ----
+        /// <summary>
+        /// "Postpone to tomorrow" fits a one-off goal that is due today or already late. Later goals would be pulled
+        /// earlier, and moving a repeating one would shift all its future occurrences.
+        /// </summary>
+        [JsonIgnore] public bool CanSnooze => !IsChecked && !IsRecurring && Due.HasValue && Due.Value.Date <= DateTime.Today;
+        [JsonIgnore] public string DoneActionText => Loc.I[IsChecked ? "ctx_undone" : "ctx_done"];
     }
 
     public class CompletionRecord
@@ -241,6 +262,47 @@ namespace Hadaf
         public List<Goal> Goals { get; set; } = new();
         public List<CompletionRecord> History { get; set; } = new();
         public Settings Settings { get; set; } = new();
+    }
+
+    /// <summary>Reads a typed time: 21:30, 21.30, 2130, 21, 9:30 م / ص, 9:30 pm, ٩:٣٠ م.</summary>
+    public static class TimeInput
+    {
+        public static TimeSpan? Parse(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            var s = new System.Text.StringBuilder();
+            foreach (char c in text.Trim().ToLowerInvariant())
+                s.Append(c >= '٠' && c <= '٩' ? (char)('0' + (c - '٠')) : c); // Arabic-Indic digits
+            var t = s.ToString();
+            bool pm = t.Contains("pm") || t.Contains('م');
+            bool am = t.Contains("am") || t.Contains('ص');
+            var digits = new string(t.Where(c => char.IsDigit(c) || c == ':' || c == '.').ToArray()).Replace('.', ':');
+            if (digits.Length == 0) return null;
+
+            int h, m = 0;
+            var parts = digits.Split(':');
+            if (parts.Length == 2 && parts[0].Length is >= 1 and <= 2 && parts[1].Length == 2)
+            {
+                h = int.Parse(parts[0]);
+                m = int.Parse(parts[1]);
+            }
+            else if (parts.Length == 1 && digits.Length is 1 or 2) h = int.Parse(digits);
+            else if (parts.Length == 1 && digits.Length is 3 or 4)
+            {
+                h = int.Parse(digits[..^2]);
+                m = int.Parse(digits[^2..]);
+            }
+            else return null;
+
+            if (pm || am)
+            {
+                if (h < 1 || h > 12) return null;
+                if (pm && h < 12) h += 12;
+                if (am && h == 12) h = 0;
+            }
+            if (h > 23 || m > 59) return null;
+            return new TimeSpan(h, m, 0);
+        }
     }
 
     public enum LoadProblem { RestoredFromBackup, Unreadable }

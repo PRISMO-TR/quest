@@ -17,6 +17,25 @@
     <BooleanToVisibilityConverter x:Key="B2V"/>
 
     <CornerRadius x:Key="R.Control">8</CornerRadius>
+    <!-- Keyboard focus: an accent ring, shown only when moving with the keyboard (never on mouse clicks) -->
+    <Style x:Key="FocusRing">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border Margin="-3" CornerRadius="10" BorderThickness="2" BorderBrush="{DynamicResource Accent}" SnapsToDevicePixels="True"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="CardFocus">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border Margin="-3" CornerRadius="15" BorderThickness="2" BorderBrush="{DynamicResource Accent}" SnapsToDevicePixels="True"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
     <CornerRadius x:Key="R.Card">12</CornerRadius>
     <CornerRadius x:Key="R.Overlay">16</CornerRadius>
 
@@ -144,7 +163,7 @@
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
         <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
     </Style>
 
@@ -228,7 +247,7 @@
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="FontFamily" Value="{StaticResource Icons}"/>
         <Setter Property="FontSize" Value="10"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
         <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -355,7 +374,7 @@
     <!-- 20px completion circle; ring colour comes from BorderBrush (priority) -->
     <Style x:Key="Check.Round" TargetType="CheckBox">
         <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
         <Setter Property="Foreground" Value="{DynamicResource Text}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource Faint}"/>
         <Setter Property="Template">
@@ -397,7 +416,7 @@
     <!-- 40 x 20 switch, label at the start -->
     <Style x:Key="Switch" TargetType="CheckBox">
         <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
         <Setter Property="Foreground" Value="{DynamicResource Text}"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -436,7 +455,7 @@
         <Setter Property="Margin" Value="2"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
         <Setter Property="Foreground" Value="{DynamicResource SubText}"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -476,9 +495,10 @@
 
     <!-- Segmented control: one 36px track, equal segments, the selected one raised -->
     <Style x:Key="SegItem" TargetType="ListBoxItem">
+        <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
         <Setter Property="Height" Value="30"/>
         <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
         <Setter Property="Foreground" Value="{DynamicResource SubText}"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -529,10 +549,11 @@
 
     <!-- Chips: wrapping pills, 32 high -->
     <Style x:Key="ChipItem" TargetType="ListBoxItem">
+        <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
         <Setter Property="Height" Value="32"/>
         <Setter Property="Margin" Value="0,0,8,8"/>
         <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
         <Setter Property="Foreground" Value="{DynamicResource Text}"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -579,10 +600,11 @@
 
     <!-- Menu entries: 40 high, accent bar marks the current one -->
     <Style x:Key="NavItem" TargetType="ListBoxItem">
-        <Setter Property="Height" Value="40"/>
+        <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
+        <Setter Property="Height" Value="38"/>
         <Setter Property="Margin" Value="0,0,0,2"/>
         <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
         <Setter Property="Foreground" Value="{DynamicResource Text}"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -679,7 +701,7 @@
                         <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" Margin="{TemplateBinding Padding}"
                                                 CanContentScroll="{TemplateBinding CanContentScroll}"/>
                         <ScrollBar x:Name="PART_VerticalScrollBar" HorizontalAlignment="Right" Margin="0,4,6,4"
-                                   Opacity="0" Orientation="Vertical"
+                                   Opacity="0.35" Orientation="Vertical"
                                    Maximum="{TemplateBinding ScrollableHeight}"
                                    ViewportSize="{TemplateBinding ViewportHeight}"
                                    Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}"
@@ -739,7 +761,7 @@
 
     <Style x:Key="Slider" TargetType="Slider">
         <Setter Property="IsMoveToPointEnabled" Value="True"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Slider">
@@ -781,6 +803,65 @@
                             <Setter Property="Opacity" Value="0.4"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Right-click menu ===================== -->
+    <Style TargetType="ContextMenu">
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="HasDropShadow" Value="False"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+        <Setter Property="FlowDirection" Value="{Binding PlacementTarget.FlowDirection, RelativeSource={RelativeSource Self}}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource CardStroke}" BorderThickness="1"
+                            CornerRadius="{StaticResource R.Card}" Padding="4" MinWidth="200">
+                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="MenuItem">
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="Height" Value="36"/>
+        <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="bd" CornerRadius="{StaticResource R.Control}" Background="Transparent" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter ContentSource="Header" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Menus style their separators through this key, never through an implicit Separator style -->
+    <Style x:Key="{x:Static MenuItem.SeparatorStyleKey}" TargetType="Separator">
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="Margin" Value="8,4"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Separator">
+                    <Border Height="1" Background="{DynamicResource Divider}"/>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

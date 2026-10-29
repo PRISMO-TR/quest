@@ -52,6 +52,14 @@ namespace Hadaf
             base.OnStartup(e);
             main = new MainWindow();
             MainWindow = main;
+            // Automated test runs can open off-screen and unfocused, so they never get in the user's way.
+            if (Environment.GetEnvironmentVariable("HADAF_DATA_DIR") != null && Environment.GetEnvironmentVariable("HADAF_TEST_OFFSCREEN") == "1")
+            {
+                main.ShowActivated = false;
+                main.WindowStartupLocation = WindowStartupLocation.Manual;
+                main.Left = SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth + 100;
+                main.Top = SystemParameters.VirtualScreenTop;
+            }
             CreateTray();
             if (e.Args.Contains("--tray")) main.StartHidden();
             else main.Show();
@@ -61,7 +69,11 @@ namespace Hadaf
         {
             tray = new Forms.NotifyIcon { Icon = LoadTrayIcon(), Text = "Hadaf", Visible = true };
             tray.MouseClick += (s, e) => { if (e.Button == Forms.MouseButtons.Left) main?.ShowFromTray(); };
-            tray.BalloonTipClicked += (s, e) => main?.ShowFromTray();
+            tray.BalloonTipClicked += (s, e) =>
+            {
+                main?.ShowFromTray();
+                if (notifiedGoal != null) main?.OpenGoal(notifiedGoal);
+            };
             UpdateTrayMenu();
         }
 
@@ -90,8 +102,11 @@ namespace Hadaf
             return Drawing.Icon.FromHandle(bmp.GetHicon());
         }
 
-        public static void Notify(string title, string text)
+        static string notifiedGoal; // the goal the last notification was about, opened when it is clicked
+
+        public static void Notify(string title, string text, string goalId = null)
         {
+            notifiedGoal = goalId;
             tray?.ShowBalloonTip(8000, title, text, Forms.ToolTipIcon.None);
         }
 

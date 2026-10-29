@@ -19,16 +19,31 @@
             countdown pill at its end · one meta row · optional progress / steps.
         -->
         <DataTemplate DataType="{x:Type local:Goal}">
-            <Border x:Name="card" Style="{StaticResource CardBox}" Padding="16,14" Margin="0,0,0,8" Cursor="Hand"
-                    MouseLeftButtonUp="Card_Click">
+            <local:Card x:Name="card" Style="{StaticResource CardBox}" Padding="16,14" Margin="0,0,0,8" Cursor="Hand"
+                    Focusable="True" FocusVisualStyle="{StaticResource CardFocus}"
+                    AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding WhenText}"
+                    MouseLeftButtonUp="Card_Click" KeyDown="Card_KeyDown">
+                <!-- Everything the hover buttons do, reachable by right-click, touch-and-hold, Shift+F10 or the menu key -->
+                <local:Card.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{local:L edit}" Click="CtxEdit_Click"/>
+                        <MenuItem Header="{Binding DoneActionText}" Click="CtxDone_Click"/>
+                        <MenuItem Header="{local:L ctx_snooze}" Click="CtxSnooze_Click"
+                                  Visibility="{Binding CanSnooze, Converter={StaticResource B2V}}"/>
+                        <MenuItem Header="{local:L ctx_steps}" Click="Expand_Click"
+                                  Visibility="{Binding HasSubTasks, Converter={StaticResource B2V}}"/>
+                        <Separator/>
+                        <MenuItem Header="{local:L delete}" Click="CtxDelete_Click" Foreground="{DynamicResource Danger}"/>
+                    </ContextMenu>
+                </local:Card.ContextMenu>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <CheckBox Style="{StaticResource Check.Round}" BorderBrush="{Binding PriorityBrush}"
-                              VerticalAlignment="Top" Margin="0,1,12,0"
+                    <local:ActionCheckBox Style="{StaticResource Check.Round}" BorderBrush="{Binding PriorityBrush}"
+                              VerticalAlignment="Top" Margin="0,1,12,0" AutomationProperties.Name="{Binding Title}"
                               IsChecked="{Binding IsChecked, Mode=OneWay}" Click="Done_Click"/>
 
                     <StackPanel Grid.Column="1">
@@ -67,9 +82,10 @@
                                       Visibility="{Binding Expanded, Converter={StaticResource B2V}}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <CheckBox Style="{StaticResource Check.Round}" IsChecked="{Binding Done}" Click="Sub_Click" Margin="0,4">
+                                    <local:ActionCheckBox Style="{StaticResource Check.Round}" IsChecked="{Binding Done}" Click="Sub_Click"
+                                                          Margin="0,4" AutomationProperties.Name="{Binding Title}">
                                         <TextBlock Text="{Binding Title}" FontSize="13.5" TextWrapping="Wrap"/>
-                                    </CheckBox>
+                                    </local:ActionCheckBox>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -93,7 +109,7 @@
                         </StackPanel>
                     </Grid>
                 </Grid>
-            </Border>
+            </local:Card>
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding IsChecked}" Value="True">
                     <Setter TargetName="title" Property="TextDecorations" Value="Strikethrough"/>
@@ -297,7 +313,7 @@
                     </StackPanel>
 
                     <Grid Grid.Row="2" Margin="0,12,0,0">
-                        <ItemsControl x:Name="GoalList" Focusable="False"
+                        <local:CardList x:Name="GoalList" Focusable="False"
                                       VirtualizingPanel.IsVirtualizing="True"
                                       VirtualizingPanel.VirtualizationMode="Recycling"
                                       VirtualizingPanel.ScrollUnit="Pixel">
@@ -313,7 +329,7 @@
                                     <VirtualizingStackPanel/>
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
-                        </ItemsControl>
+                        </local:CardList>
 
                         <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center"
                                     MaxWidth="260" Margin="0,0,0,48" Visibility="Collapsed">
@@ -458,9 +474,11 @@
                                         <DockPanel>
                                             <TextBox x:Name="TimeBox" DockPanel.Dock="Right" Style="{StaticResource Input}" Width="88"
                                                      Tag="18:00" FlowDirection="LeftToRight" HorizontalContentAlignment="Center"
-                                                     TextChanged="TimeBox_TextChanged"/>
+                                                     TextChanged="TimeBox_TextChanged" LostFocus="TimeBox_LostFocus"/>
                                             <TextBlock Style="{StaticResource T.Caption}" Text="{local:L time}" VerticalAlignment="Center"/>
                                         </DockPanel>
+                                        <TextBlock x:Name="TimeError" Text="{local:L time_invalid}" FontSize="12" Foreground="{DynamicResource Danger}"
+                                                   TextWrapping="Wrap" Margin="0,6,0,0" Visibility="Collapsed"/>
                                         <WrapPanel Margin="0,12,0,-8">
                                             <Button Style="{StaticResource Btn.Chip}" Tag="09:00" Content="09:00" Click="QuickTime_Click"/>
                                             <Button Style="{StaticResource Btn.Chip}" Tag="12:00" Content="12:00" Click="QuickTime_Click"/>
@@ -546,26 +564,26 @@
                             <TextBlock Style="{StaticResource T.Label}" Text="{local:L sec_notify}" Margin="4,24,4,8"/>
                             <Border Style="{StaticResource CardBox}" Padding="16,0">
                                 <StackPanel>
-                                    <CheckBox x:Name="NotifySwitch" Style="{StaticResource Switch}" Margin="0,14" Click="Switch_Click">
+                                    <local:ActionCheckBox x:Name="NotifySwitch" AutomationProperties.Name="{local:L set_notify}" Style="{StaticResource Switch}" Margin="0,14" Click="Switch_Click">
                                         <StackPanel>
                                             <TextBlock Text="{local:L set_notify}"/>
                                             <TextBlock Style="{StaticResource T.Caption}" Text="{local:L set_notify_desc}" TextWrapping="Wrap"/>
                                         </StackPanel>
-                                    </CheckBox>
+                                    </local:ActionCheckBox>
                                     <Border Style="{StaticResource Rule}" Margin="-16,0"/>
-                                    <CheckBox x:Name="TraySwitch" Style="{StaticResource Switch}" Margin="0,14" Click="Switch_Click">
+                                    <local:ActionCheckBox x:Name="TraySwitch" AutomationProperties.Name="{local:L set_tray}" Style="{StaticResource Switch}" Margin="0,14" Click="Switch_Click">
                                         <StackPanel>
                                             <TextBlock Text="{local:L set_tray}"/>
                                             <TextBlock Style="{StaticResource T.Caption}" Text="{local:L set_tray_desc}" TextWrapping="Wrap"/>
                                         </StackPanel>
-                                    </CheckBox>
+                                    </local:ActionCheckBox>
                                     <Border Style="{StaticResource Rule}" Margin="-16,0"/>
-                                    <CheckBox x:Name="StartupSwitch" Style="{StaticResource Switch}" Margin="0,14" Click="Switch_Click">
+                                    <local:ActionCheckBox x:Name="StartupSwitch" AutomationProperties.Name="{local:L set_startup}" Style="{StaticResource Switch}" Margin="0,14" Click="Switch_Click">
                                         <StackPanel>
                                             <TextBlock Text="{local:L set_startup}"/>
                                             <TextBlock Style="{StaticResource T.Caption}" Text="{local:L set_startup_desc}" TextWrapping="Wrap"/>
                                         </StackPanel>
-                                    </CheckBox>
+                                    </local:ActionCheckBox>
                                 </StackPanel>
                             </Border>
 

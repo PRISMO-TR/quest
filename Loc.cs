@@ -264,6 +264,13 @@ namespace Hadaf
             ["last_backup"] = new[] { "آخر نسخة: {0}", "Last backup: {0}" },
             ["no_backup_yet"] = new[] { "لا توجد نسخ احتياطية بعد", "No backups yet" },
 
+            ["ctx_done"] = new[] { "تم الإنجاز", "Mark as done" },
+            ["ctx_undone"] = new[] { "إلغاء الإنجاز", "Mark as not done" },
+            ["ctx_snooze"] = new[] { "تأجيل إلى الغد", "Postpone to tomorrow" },
+            ["ctx_steps"] = new[] { "إظهار الخطوات أو إخفاؤها", "Show or hide steps" },
+            ["snoozed"] = new[] { "أُجّل إلى {0}", "Postponed to {0}" },
+            ["time_invalid"] = new[] { "اكتب الوقت مثل 21:30 أو 9:30 م", "Type a time like 21:30 or 9:30 pm" },
+
             ["a11y_menu"] = new[] { "القائمة", "Menu" },
             ["a11y_minimize"] = new[] { "تصغير", "Minimize" },
             ["a11y_maximize"] = new[] { "تكبير", "Maximize" },

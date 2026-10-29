@@ -42,6 +42,11 @@ namespace Hadaf
 
         public static void Apply(Window w, Settings s)
         {
+            if (SystemParameters.HighContrast)
+            {
+                ApplyHighContrast(w);
+                return;
+            }
             IsDark = s.Theme == "dark" || (s.Theme == "system" && SystemIsDark());
             bool glass = GlassSupported && s.Effect != "solid";
             double t = glass ? Math.Clamp(s.Transparency, 0, 1) : 0;
@@ -137,6 +142,51 @@ namespace Hadaf
                     src.CompositionTarget.BackgroundColor = glass ? Colors.Transparent : ToColor(0xFF000000 | baseRgb);
             }
             w.Background = glass ? Brushes.Transparent : B(0xFF000000 | baseRgb);
+        }
+
+        /// <summary>
+        /// Windows contrast themes: the user's own colours, solid surfaces, strong outlines, no glass or shadows.
+        /// </summary>
+        static void ApplyHighContrast(Window w)
+        {
+            Brush Solid(Color c) { var b = new SolidColorBrush(c); b.Freeze(); return b; }
+            var window = SystemColors.WindowColor;
+            var text = Solid(SystemColors.WindowTextColor);
+            var highlight = Solid(SystemColors.HighlightColor);
+            var bg = Solid(window);
+            var none = Solid(Colors.Transparent);
+            IsDark = Luminance(window) < 0.4;
+
+            var R = Application.Current.Resources;
+            foreach (var key in new[] { "BgLayer", "Card", "CardHover", "ControlFill", "ControlStrong", "Track", "InputBg",
+                                        "InputHover", "InputFocus", "Surface", "AccentSoft", "DangerSoft", "WarnSoft" })
+                R[key] = bg;
+            foreach (var key in new[] { "CardStroke", "ControlStroke", "InputStroke", "Divider", "Text", "SubText",
+                                        "Danger", "DangerStroke", "Warn", "WarnStroke" })
+                R[key] = text;
+            foreach (var key in new[] { "Hover", "Pressed", "Scrim" }) R[key] = none;
+            R["Selected"] = bg;
+            R["Faint"] = Solid(SystemColors.GrayTextColor);
+            R["Accent"] = highlight;
+            R["InfoStroke"] = highlight;
+            R["AccentText"] = Solid(SystemColors.HighlightTextColor);
+            R["ShadowLg"] = null;
+            R["ShadowSm"] = null;
+
+            var hwnd = new WindowInteropHelper(w).Handle;
+            if (hwnd != IntPtr.Zero)
+            {
+                int dark = IsDark ? 1 : 0;
+                DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
+                if (GlassSupported)
+                {
+                    int backdrop = 1;
+                    DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ref backdrop, sizeof(int));
+                }
+                var src = HwndSource.FromHwnd(hwnd);
+                if (src?.CompositionTarget != null) src.CompositionTarget.BackgroundColor = window;
+            }
+            w.Background = bg;
         }
 
         /// <summary>
