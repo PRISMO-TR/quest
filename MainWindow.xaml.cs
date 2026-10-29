@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -250,7 +251,7 @@ namespace Hadaf
             Save();
             if (saveError == null) return true;
             var options = L.IsAr ? MessageBoxOptions.RtlReading | MessageBoxOptions.RightAlign : MessageBoxOptions.None;
-            return MessageBox.Show(L.F("exit_unsaved_text", saveError.Message), L["save_failed_title"],
+            return MessageBox.Show(L.F("exit_unsaved_text", Describe(saveError)), L["save_failed_title"],
                 MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No, options) == MessageBoxResult.Yes;
         }
 
@@ -1332,9 +1333,18 @@ namespace Hadaf
             }
             bool firstFailure = saveError == null;
             saveError = error;
-            ShowNotice("save", true, L["save_failed_title"], L.F("save_failed_text", error.Message), L["retry"], Save);
+            ShowNotice("save", true, L["save_failed_title"], L.F("save_failed_text", Describe(error)), L["retry"], Save);
             if (firstFailure && !IsVisible) App.Notify(L["save_failed_title"], error.Message);
         }
+
+        /// <summary>The common reasons a save fails, in the user's language; anything else keeps the system text.</summary>
+        string Describe(Exception error) => error switch
+        {
+            UnauthorizedAccessException => L["err_access"],
+            IOException io when (io.HResult & 0xFFFF) is 112 or 39 => L["err_disk_full"], // ERROR_DISK_FULL / HANDLE_DISK_FULL
+            IOException io when (io.HResult & 0xFFFF) is 32 or 33 => L["err_locked"],      // sharing / lock violation
+            _ => error.Message,
+        };
 
         /// <summary>Tells the user when start-up had to recover their data, and stores the recovered copy.</summary>
         void ReportLoadIssue()
