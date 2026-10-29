@@ -1,0 +1,5 @@
+# Text files are stored with LF and checked out the way the PC expects; binaries are left alone.
+* text=auto
+*.png binary
+*.ico binary
+*.ttf binary

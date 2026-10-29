@@ -1,6 +1,22 @@
 # Quest · كويست
 
 Goals and daily tasks for Windows: deadlines, steps, reminders, streaks. WPF on .NET 10, Arabic and English.
+
+كويست: تطبيق للأهداف والمهام اليومية على Windows، بالعربية والإنجليزية، بمواعيد وخطوات وتذكيرات وأيام متتالية.
+
+## Features
+
+- **Goals** with a deadline, a priority, a category and steps with a progress bar.
+- **Daily tasks** that renew every day (or on chosen weekdays), with a streak of days in a row.
+- **Repeating goals**, weekly or monthly; a monthly goal keeps its day of the month (31st → 28th → 31st).
+- **Today**: what is late, due today or done today. Postpone to tomorrow, and Undo after every tick.
+- **Reminders** before and at the deadline; runs in the tray and can start with Windows.
+- **Statistics**: completions, the last seven days, the on-time share and the day streak.
+- **Categories and accent colour** of your own; colour emoji in titles.
+- **Your data stays safe**: saves that can't half-fail, hourly backups, export and import.
+- Arabic and English (right to left), dark and light, glass on Windows 11, high-contrast themes,
+  Windows text size, keyboard and screen reader support.
+
 The app was first called Hadaf (هدف); the code still uses that name, and the first start of Quest moves
 the old data folder and start-with-Windows entry over to the new name.
 
@@ -52,3 +68,7 @@ with such a file's, after taking a backup of the current ones (and offers Undo).
 Set `HADAF_DATA_DIR` to a scratch folder. That copy then uses its own data, its own single-instance lock,
 and a test registry key instead of the real start-with-Windows entry. Adding `HADAF_TEST_OFFSCREEN=1` opens
 the window off-screen and unfocused, for automated runs.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
