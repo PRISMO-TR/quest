@@ -484,7 +484,7 @@
     <DataTemplate x:Key="OptTpl">
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
             <Ellipse x:Name="dot" Width="8" Height="8" Fill="{Binding Brush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
-            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontSize="13"/>
+            <TextBlock local:Emoji.Text="{Binding Name}" VerticalAlignment="Center" FontSize="13"/>
         </StackPanel>
         <DataTemplate.Triggers>
             <DataTrigger Binding="{Binding Brush}" Value="{x:Null}">
@@ -596,6 +596,39 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!-- Colour swatches: 32 circles in a wrapping row; a ring marks the chosen one -->
+    <Style x:Key="SwatchItem" TargetType="ListBoxItem">
+        <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
+        <Setter Property="ToolTip" Value="{Binding Name}"/>
+        <Setter Property="Width" Value="32"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Margin" Value="0,0,4,8"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Grid Background="Transparent">
+                        <Ellipse x:Name="ring" Stroke="{DynamicResource Text}" StrokeThickness="2" Opacity="0"/>
+                        <Ellipse Margin="5" Fill="{Binding Brush}"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ring" Property="Opacity" Value="0.35"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="ring" Property="Opacity" Value="1"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Swatches" TargetType="ListBox" BasedOn="{StaticResource Chips}">
+        <Setter Property="ItemContainerStyle" Value="{StaticResource SwatchItem}"/>
     </Style>
 
     <!-- Menu entries: 40 high, accent bar marks the current one -->

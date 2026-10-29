@@ -44,22 +44,82 @@ namespace Hadaf
             }
             return b;
         }
+
+        /// <summary>Colours offered for categories and the accent; each reads well on dark and light.</summary>
+        public static readonly (string Key, uint Argb)[] Swatches =
+        {
+            ("blue", 0xFF3B82F6), ("violet", 0xFF8B5CF6), ("pink", 0xFFEC4899), ("green", 0xFF10B981), ("amber", 0xFFF59E0B),
+            ("slate", 0xFF64748B), ("red", 0xFFEF4444), ("teal", 0xFF14B8A6), ("orange", 0xFFF97316), ("indigo", 0xFF6366F1),
+        };
+
+        public static string Hex(uint argb) => $"#{argb & 0xFFFFFF:X6}";
+
+        /// <summary>Reads #RRGGBB.</summary>
+        public static bool TryParse(string hex, out uint argb)
+        {
+            argb = 0;
+            if (hex is not { Length: 7 } || hex[0] != '#'
+                || !uint.TryParse(hex.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var rgb))
+                return false;
+            argb = 0xFF000000 | rgb;
+            return true;
+        }
+    }
+
+    /// <summary>A category of goals. The six built-in ones can be renamed and recoloured, and the user can add more.</summary>
+    public class CategoryDef
+    {
+        public string Id { get; set; }
+        /// <summary>The user's own name. Empty on a built-in category: it keeps its name in the current language.</summary>
+        public string Name { get; set; }
+        /// <summary>#RRGGBB</summary>
+        public string Color { get; set; }
     }
 
     public static class Categories
     {
-        public static readonly string[] Ids = { "work", "study", "personal", "health", "finance", "other" };
-        static readonly Dictionary<string, uint> Colors = new()
+        /// <summary>Where the goals of a deleted category go; it can be renamed, not deleted.</summary>
+        public const string Fallback = "other";
+        public const int Max = 12;
+        static readonly string[] BuiltIn = { "work", "study", "personal", "health", "finance", "other" };
+        static readonly uint[] BuiltInColors = { 0xFF3B82F6, 0xFF8B5CF6, 0xFFEC4899, 0xFF10B981, 0xFFF59E0B, 0xFF64748B };
+
+        static List<CategoryDef> list = Defaults();
+
+        /// <summary>The categories in menu order.</summary>
+        public static IReadOnlyList<CategoryDef> All => list;
+
+        static List<CategoryDef> Defaults() =>
+            BuiltIn.Select((id, i) => new CategoryDef { Id = id, Color = Palette.Hex(BuiltInColors[i]) }).ToList();
+
+        /// <summary>
+        /// Puts the settings' list in use, first repairing what an older or hand-edited file may lack
+        /// (no list at all, repeated ids, a bad colour, no fallback category).
+        /// </summary>
+        public static List<CategoryDef> Use(List<CategoryDef> defs)
         {
-            ["work"] = 0xFF3B82F6,
-            ["study"] = 0xFF8B5CF6,
-            ["personal"] = 0xFFEC4899,
-            ["health"] = 0xFF10B981,
-            ["finance"] = 0xFFF59E0B,
-            ["other"] = 0xFF64748B,
-        };
+            defs = (defs ?? new()).Where(c => !string.IsNullOrWhiteSpace(c?.Id)).GroupBy(c => c.Id).Select(g => g.First()).ToList();
+            if (defs.Count == 0) defs = Defaults();
+            if (!defs.Any(c => c.Id == Fallback)) defs.Add(new CategoryDef { Id = Fallback, Color = Palette.Hex(0xFF64748B) });
+            foreach (var c in defs.Where(c => !Palette.TryParse(c.Color, out _))) c.Color = Palette.Hex(0xFF64748B);
+            list = defs;
+            return defs;
+        }
+
+        public static bool IsBuiltIn(string id) => BuiltIn.Contains(id);
+        public static bool Exists(string id) => list.Any(c => c.Id == id);
+        static CategoryDef Find(string id) => list.FirstOrDefault(c => c.Id == id) ?? list.FirstOrDefault(c => c.Id == Fallback);
+
+        /// <summary>For new goals: "personal" while it exists.</summary>
+        public static string Default => Exists("personal") ? "personal" : Fallback;
+
+        // A goal whose category is gone (deleted, or missing from an imported file) shows as the fallback.
         public static SolidColorBrush BrushOf(string id) =>
-            Palette.B(id != null && Colors.TryGetValue(id, out var c) ? c : 0xFF64748B);
+            Palette.B(Palette.TryParse(Find(id)?.Color, out var c) ? c : 0xFF64748B);
+        public static string NameOf(string id) => NameOf(Find(id));
+        public static string NameOf(CategoryDef c) =>
+            !string.IsNullOrWhiteSpace(c?.Name) ? c.Name : DefaultName(c?.Id);
+        public static string DefaultName(string id) => Loc.I["cat_" + (IsBuiltIn(id) ? id : Fallback)];
     }
 
     public class SubTask : Notify
@@ -145,7 +205,7 @@ namespace Hadaf
         });
         [JsonIgnore] public string PriorityName => Loc.I["p_" + Priority.ToString().ToLowerInvariant()];
         [JsonIgnore] public Brush CategoryBrush => Categories.BrushOf(Category);
-        [JsonIgnore] public string CategoryName => Loc.I["cat_" + Category];
+        [JsonIgnore] public string CategoryName => Categories.NameOf(Category);
         [JsonIgnore] public string DueText => Due.HasValue ? Loc.I.FormatDate(Due.Value) : "";
         [JsonIgnore] public string RecurrenceName => Loc.I["r_" + Recurrence.ToString().ToLowerInvariant()];
         /// <summary>"Daily", or the chosen weekdays when a daily task skips some days.</summary>
@@ -237,6 +297,11 @@ namespace Hadaf
         public string Category { get; set; }
         public DateTime At { get; set; }
         public bool OnTime { get; set; }
+        /// <summary>
+        /// The goal had a real deadline when it was ticked off. Goals without one and any-time daily tasks can't
+        /// be late, so they stay out of the on-time share. Null on records made before this was kept.
+        /// </summary>
+        public bool? HadDeadline { get; set; }
     }
 
     public class Settings
@@ -244,6 +309,10 @@ namespace Hadaf
         public string Lang { get; set; } = "ar";
         public string Theme { get; set; } = "system";
         public string Effect { get; set; } = "acrylic";
+        /// <summary>"system" (the Windows accent colour) or #RRGGBB.</summary>
+        public string Accent { get; set; } = "system";
+        /// <summary>The user's categories in menu order (absent from files made before they could be edited).</summary>
+        public List<CategoryDef> Categories { get; set; }
         public double Transparency { get; set; } = 0.6;
         public bool Notifications { get; set; } = true;
         public bool CloseToTray { get; set; } = true;
@@ -443,12 +512,41 @@ namespace Hadaf
                 }
             }
             if (data == null) return false;
+            Normalize(data);
+            return true;
+        }
+
+        static void Normalize(AppData data)
+        {
             data.Goals ??= new();
             data.History ??= new();
             data.Settings ??= new();
             data.Goals.RemoveAll(g => g == null);
             data.History.RemoveAll(h => h == null);
-            return true;
+        }
+
+        /// <summary>Writes a readable copy of the data to a file the user picked (Settings → Export).</summary>
+        public static void Export(AppData data, string path) =>
+            File.WriteAllText(path, JsonSerializer.Serialize(data, new JsonSerializerOptions(Options) { WriteIndented = true }));
+
+        /// <summary>Reads a file picked for import; null unless it is a Hadaf data file.</summary>
+        public static AppData ReadForImport(string path)
+        {
+            try
+            {
+                var text = File.ReadAllText(path);
+                using (var doc = JsonDocument.Parse(text))
+                    if (doc.RootElement.ValueKind != JsonValueKind.Object || !doc.RootElement.TryGetProperty("Goals", out _))
+                        return null;
+                var data = JsonSerializer.Deserialize<AppData>(text, Options);
+                if (data == null) return null;
+                Normalize(data);
+                return data;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public static T Clone<T>(T obj) =>

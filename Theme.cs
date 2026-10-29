@@ -19,6 +19,7 @@ namespace Hadaf
         public static bool GlassSupported => Environment.OSVersion.Version.Build >= 22621;
 
         const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+        const int DWMWA_USE_IMMERSIVE_DARK_MODE_OLD = 19;
         const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
 
         [DllImport("dwmapi.dll")]
@@ -118,7 +119,7 @@ namespace Hadaf
             R["ShadowLg"] = Shadow(32, 8, IsDark ? 0.5 : 0.18);
             R["ShadowSm"] = Shadow(12, 2, IsDark ? 0.4 : 0.14);
 
-            var accent = AdjustAccent(SystemAccent(), IsDark);
+            var accent = AdjustAccent(Palette.TryParse(s.Accent, out var chosen) ? ToColor(chosen) : SystemAccent, IsDark);
             uint a = (uint)(accent.R << 16 | accent.G << 8 | accent.B);
             R["Accent"] = B(0xFF000000 | a);
             R["AccentSoft"] = B(0x2E000000 | a);
@@ -130,8 +131,7 @@ namespace Hadaf
             var hwnd = new WindowInteropHelper(w).Handle;
             if (hwnd != IntPtr.Zero)
             {
-                int dark = IsDark ? 1 : 0;
-                DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
+                SetDarkFrame(hwnd, IsDark);
                 if (GlassSupported)
                 {
                     int backdrop = !glass ? 1 : s.Effect == "mica" ? 2 : 3;
@@ -176,8 +176,7 @@ namespace Hadaf
             var hwnd = new WindowInteropHelper(w).Handle;
             if (hwnd != IntPtr.Zero)
             {
-                int dark = IsDark ? 1 : 0;
-                DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
+                SetDarkFrame(hwnd, IsDark);
                 if (GlassSupported)
                 {
                     int backdrop = 1;
@@ -187,6 +186,14 @@ namespace Hadaf
                 if (src?.CompositionTarget != null) src.CompositionTarget.BackgroundColor = window;
             }
             w.Background = bg;
+        }
+
+        /// <summary>Dark or light window frame. Windows 10 builds before 20H1 know the setting by an older number.</summary>
+        static void SetDarkFrame(IntPtr hwnd, bool dark)
+        {
+            int v = dark ? 1 : 0;
+            if (DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref v, sizeof(int)) != 0)
+                DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_OLD, ref v, sizeof(int));
         }
 
         /// <summary>
@@ -235,20 +242,27 @@ namespace Hadaf
             catch { return true; }
         }
 
-        static Color SystemAccent()
+        /// <summary>The Windows accent colour, as the user set it.</summary>
+        public static Color SystemAccent
         {
-            try
+            get
             {
-                using var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\DWM");
-                if (k?.GetValue("AccentColor") is int v) // stored as ABGR
-                    return Color.FromRgb((byte)(v & 0xFF), (byte)((v >> 8) & 0xFF), (byte)((v >> 16) & 0xFF));
+                try
+                {
+                    using var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\DWM");
+                    if (k?.GetValue("AccentColor") is int v) // stored as ABGR
+                        return Color.FromRgb((byte)(v & 0xFF), (byte)((v >> 8) & 0xFF), (byte)((v >> 16) & 0xFF));
+                }
+                catch { }
+                return Color.FromRgb(0x8B, 0x5C, 0xF6);
             }
-            catch { }
-            return Color.FromRgb(0x8B, 0x5C, 0xF6);
         }
 
         static double Lin(byte c) { double x = c / 255.0; return x <= 0.03928 ? x / 12.92 : Math.Pow((x + 0.055) / 1.055, 2.4); }
         static double Luminance(Color c) => 0.2126 * Lin(c.R) + 0.7152 * Lin(c.G) + 0.0722 * Lin(c.B);
+
+        /// <summary>An accent colour as it is used in the current theme.</summary>
+        public static Color Legible(Color c) => AdjustAccent(c, IsDark);
 
         /// <summary>Keeps the Windows accent colour legible against the current theme.</summary>
         static Color AdjustAccent(Color c, bool dark)

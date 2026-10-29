@@ -47,7 +47,7 @@
                               IsChecked="{Binding IsChecked, Mode=OneWay}" Click="Done_Click"/>
 
                     <StackPanel Grid.Column="1">
-                        <TextBlock x:Name="title" Style="{StaticResource T.Subtitle}" Text="{Binding Title}"
+                        <TextBlock x:Name="title" Style="{StaticResource T.Subtitle}" local:Emoji.Text="{Binding Title}"
                                    TextWrapping="Wrap"/>
                         <WrapPanel Margin="0,2,0,0" TextElement.FontSize="13" TextElement.Foreground="{DynamicResource SubText}">
                             <StackPanel Orientation="Horizontal" Margin="0,0,14,0"
@@ -57,7 +57,7 @@
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,14,0">
                                 <Ellipse Width="8" Height="8" Fill="{Binding CategoryBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding CategoryName}"/>
+                                <TextBlock local:Emoji.Text="{Binding CategoryName}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,14,0"
                                         Visibility="{Binding IsRecurring, Converter={StaticResource B2V}}">
@@ -84,7 +84,7 @@
                                 <DataTemplate>
                                     <local:ActionCheckBox Style="{StaticResource Check.Round}" IsChecked="{Binding Done}" Click="Sub_Click"
                                                           Margin="0,4" AutomationProperties.Name="{Binding Title}">
-                                        <TextBlock Text="{Binding Title}" FontSize="13.5" TextWrapping="Wrap"/>
+                                        <TextBlock local:Emoji.Text="{Binding Title}" FontSize="13.5" TextWrapping="Wrap"/>
                                     </local:ActionCheckBox>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -160,7 +160,7 @@
                 <TextBlock x:Name="ic" Style="{StaticResource T.Icon}" Text="{Binding Icon}" Foreground="{DynamicResource SubText}"/>
                 <Ellipse x:Name="dot" Width="10" Height="10" Fill="{Binding Brush}" HorizontalAlignment="Left"
                          Margin="3,0,0,0" Visibility="Collapsed"/>
-                <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Grid.Column="1" local:Emoji.Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                 <TextBlock x:Name="count" Grid.Column="2" Text="{Binding Count}" FontSize="12" FontWeight="Normal"
                            VerticalAlignment="Center" Foreground="{DynamicResource Faint}"
                            Visibility="{Binding HasCount, Converter={StaticResource B2V}}"/>
@@ -225,19 +225,44 @@
         <DataTemplate x:Key="CatRowTpl">
             <Grid Height="36">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="96"/>
+                    <ColumnDefinition Width="104"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="36"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <DockPanel VerticalAlignment="Center" Margin="0,0,8,0">
                     <Ellipse Width="8" Height="8" Fill="{Binding Brush}" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding Name}" Margin="8,0,0,0" FontSize="13"/>
-                </StackPanel>
+                    <TextBlock local:Emoji.Text="{Binding Name}" Margin="8,0,0,0" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                </DockPanel>
                 <ProgressBar Grid.Column="1" Style="{StaticResource Bar}" Value="{Binding Pct, Mode=OneWay}"
                              Foreground="{Binding Brush}" VerticalAlignment="Center"/>
                 <TextBlock Grid.Column="2" Text="{Binding Count}" HorizontalAlignment="Right" VerticalAlignment="Center"
                            FontSize="13" Foreground="{DynamicResource SubText}"/>
             </Grid>
+        </DataTemplate>
+
+        <!-- Category editor row (Settings): colour · name · delete; the colour choices open under it -->
+        <DataTemplate x:Key="CatEditTpl">
+            <StackPanel>
+                <Grid Height="44">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Style="{StaticResource Btn.IconSm}" AutomationProperties.Name="{Binding ColorLabel}" Click="CatColor_Click">
+                        <Ellipse Width="14" Height="14" Fill="{Binding Brush}"/>
+                    </Button>
+                    <TextBox Grid.Column="1" Style="{StaticResource Input.Bare}" Margin="10,0" MaxLength="24"
+                             Text="{Binding Name, Mode=OneWay}" Tag="{Binding Placeholder}" AutomationProperties.Name="{Binding Name}"
+                             LostKeyboardFocus="CatName_LostFocus" KeyDown="CatName_KeyDown"/>
+                    <Button Grid.Column="2" Style="{StaticResource Btn.IconSm}" Content="&#xE74D;"
+                            AutomationProperties.Name="{Binding DeleteLabel}" Click="CatDelete_Click"
+                            Visibility="{Binding CanDelete, Converter={StaticResource B2V}}"/>
+                </Grid>
+                <ListBox Style="{StaticResource Swatches}" Margin="34,0,0,4" ItemsSource="{Binding Colors}"
+                         SelectedValue="{Binding Def.Color, Mode=OneWay}" SelectionChanged="CatSwatch_Changed"
+                         Visibility="{Binding Picking, Converter={StaticResource B2V}}"/>
+            </StackPanel>
         </DataTemplate>
     </Window.Resources>
 
@@ -541,6 +566,13 @@
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource T.Caption}" Text="{local:L set_theme}" Margin="0,0,0,8"/>
                                     <ListBox x:Name="ThemeChips" Style="{StaticResource Segmented}" SelectionChanged="SettingChip_Changed"/>
+                                    <DockPanel Margin="0,16,0,8">
+                                        <TextBlock x:Name="AccentName" DockPanel.Dock="Right" FontSize="12" Foreground="{DynamicResource Faint}"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Style="{StaticResource T.Caption}" Text="{local:L set_accent}"/>
+                                    </DockPanel>
+                                    <ListBox x:Name="AccentChips" Style="{StaticResource Swatches}" Margin="-5,0,0,-8"
+                                             SelectionChanged="Accent_Changed"/>
                                     <TextBlock Style="{StaticResource T.Caption}" Text="{local:L set_effect}" Margin="0,16,0,8"/>
                                     <ListBox x:Name="FxChips" Style="{StaticResource Segmented}" SelectionChanged="SettingChip_Changed"/>
                                     <TextBlock Text="{local:L fx_desc}" FontSize="12" Foreground="{DynamicResource Faint}"
@@ -559,6 +591,23 @@
                             <TextBlock Style="{StaticResource T.Label}" Text="{local:L sec_language}" Margin="4,24,4,8"/>
                             <Border Style="{StaticResource CardBox}" Padding="16">
                                 <ListBox x:Name="LangChips" Style="{StaticResource Segmented}" SelectionChanged="SettingChip_Changed"/>
+                            </Border>
+
+                            <TextBlock Style="{StaticResource T.Label}" Text="{local:L sec_categories}" Margin="4,24,4,8"/>
+                            <Border Style="{StaticResource CardBox}" Padding="10,6,16,14">
+                                <StackPanel>
+                                    <ItemsControl x:Name="CatEditor" ItemTemplate="{StaticResource CatEditTpl}" Focusable="False"/>
+                                    <Button x:Name="AddCatBtn" Style="{StaticResource Btn.Subtle}" HorizontalAlignment="Left" Padding="8,0"
+                                            Margin="0,4,0,0" AutomationProperties.Name="{local:L add_category}" Click="AddCategory_Click">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource T.Icon}" Text="&#xE710;" FontSize="14"
+                                                       Foreground="{DynamicResource Accent}" Margin="0,0,8,0"/>
+                                            <TextBlock Text="{local:L add_category}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock x:Name="CatDesc" FontSize="12" Foreground="{DynamicResource Faint}" TextWrapping="Wrap"
+                                               Margin="6,8,0,0"/>
+                                </StackPanel>
                             </Border>
 
                             <TextBlock Style="{StaticResource T.Label}" Text="{local:L sec_notify}" Margin="4,24,4,8"/>
@@ -598,6 +647,13 @@
                                                 Click="BackupNow_Click"/>
                                         <Button Style="{StaticResource Btn.Subtle}" Content="{local:L open_data_folder}"
                                                 Click="OpenDataFolder_Click"/>
+                                    </WrapPanel>
+                                    <Border Style="{StaticResource Rule}" Margin="-16,16"/>
+                                    <TextBlock Style="{StaticResource T.Caption}" Text="{local:L transfer_desc}" TextWrapping="Wrap"/>
+                                    <WrapPanel Margin="0,12,0,0">
+                                        <Button Style="{StaticResource Btn}" Content="{local:L export}" Margin="0,0,8,0"
+                                                Click="Export_Click"/>
+                                        <Button Style="{StaticResource Btn.Subtle}" Content="{local:L import}" Click="Import_Click"/>
                                     </WrapPanel>
                                 </StackPanel>
                             </Border>

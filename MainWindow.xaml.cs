@@ -38,6 +38,23 @@ namespace Hadaf
         public bool IsAlert { get => _alert; set => Set(ref _alert, value); }
     }
 
+    /// <summary>A row of the category editor in Settings.</summary>
+    public class CatRow : Notify
+    {
+        bool _picking;
+        public CategoryDef Def { get; init; }
+        public List<Opt> Colors { get; init; }
+        public string Name => Categories.NameOf(Def);
+        /// <summary>Shown when the box is emptied: a built-in category goes back to its own name.</summary>
+        public string Placeholder => Categories.IsBuiltIn(Def.Id) ? Categories.DefaultName(Def.Id) : "";
+        public Brush Brush => Categories.BrushOf(Def.Id);
+        public bool CanDelete => Def.Id != Categories.Fallback;
+        /// <summary>The colour choices are open.</summary>
+        public bool Picking { get => _picking; set => Set(ref _picking, value); }
+        public string ColorLabel => Loc.I.F("a11y_cat_color", Name);
+        public string DeleteLabel => Loc.I.F("a11y_cat_delete", Name);
+    }
+
     /// <summary>Section title inside the goal list ("Overdue 2", "Daily 1/3" …).</summary>
     public class GroupHeader
     {
@@ -102,10 +119,8 @@ namespace Hadaf
             nav.Add(new NavItem { Key = "overdue", Icon = "" });
             nav.Add(new NavItem { Key = "done", Icon = "" });
             nav.Add(new NavItem { Key = "stats", Icon = "", ShowCount = false });
-            foreach (var id in Categories.Ids)
-                cats.Add(new NavItem { Key = id, IsCat = true, Brush = Categories.BrushOf(id) });
+            PrepareData();
             NavList.ItemsSource = nav;
-            CatList.ItemsSource = cats;
             suppress = true;
             NavList.SelectedIndex = 0;
             suppress = false;
@@ -278,6 +293,8 @@ namespace Hadaf
                 Theme.Apply(this, S);
                 ApplyTextScale();
                 RefreshCards();
+                FillAccentChips(); // the Windows colour may have changed too
+                SyncSettingsUi();
             }));
         }
 
@@ -435,6 +452,7 @@ namespace Hadaf
             S.Theme = Theme.IsDark ? "light" : "dark";
             Theme.Apply(this, S);
             RefreshCards();
+            FillAccentChips();
             SyncSettingsUi();
             Save();
         }
@@ -446,15 +464,14 @@ namespace Hadaf
             Title = L["app"];
             SettingsBack.Content = L.IsAr ? "" : "";
             foreach (var n in nav) n.Name = L["nav_" + n.Key];
-            foreach (var c in cats) c.Name = L["cat_" + c.Key];
+            FillCategoryLists();
+            FillCategoryEditor();
 
             // Swapping a picker's items briefly clears its selection, and a two-way binding would write
             // that into the goal being edited; detach the editor while the lists are rebuilt.
             var editing = EditorForm.DataContext;
             syncing = true;
             EditorForm.DataContext = null;
-            CatChips.ItemsSource = Categories.Ids
-                .Select(id => new Opt { Key = id, Name = L["cat_" + id], Brush = Categories.BrushOf(id) }).ToList();
             PrioChips.ItemsSource = new[] { Priority.Low, Priority.Medium, Priority.High }
                 .Select(p => new Opt { Key = p, Name = L["p_" + p.ToString().ToLowerInvariant()], Brush = new Goal { Priority = p }.PriorityBrush })
                 .ToList();
@@ -471,6 +488,7 @@ namespace Hadaf
             ThemeChips.ItemsSource = new[] { "system", "dark", "light" }.Select(k => new Opt { Key = k, Name = L["th_" + k] }).ToList();
             FxChips.ItemsSource = new[] { "acrylic", "mica", "solid" }.Select(k => new Opt { Key = k, Name = L["fx_" + k] }).ToList();
             suppress = false;
+            FillAccentChips();
             SyncSettingsUi();
 
             App.UpdateTrayMenu();
@@ -600,7 +618,7 @@ namespace Hadaf
             UpdateStreaks();
             UpdateCounts();
             bool stats = view == "stats", daily = view == "daily";
-            ViewTitle.Text = cat != null ? L["cat_" + cat] : L["nav_" + view];
+            ViewTitle.Text = cat != null ? Categories.NameOf(cat) : L["nav_" + view];
             StatsView.Visibility = stats ? Visibility.Visible : Visibility.Collapsed;
             GoalList.Visibility = stats ? Visibility.Collapsed : Visibility.Visible;
             SearchToggle.Visibility = stats ? Visibility.Collapsed : Visibility.Visible;
@@ -747,7 +765,7 @@ namespace Hadaf
             if (e.Key != Key.Enter) return;
             var title = QuickAdd.Text.Trim();
             if (title.Length == 0) return;
-            var g = new Goal { Title = title, Category = cat ?? "personal" };
+            var g = new Goal { Title = title, Category = cat ?? Categories.Default };
             if (view == "daily")
             {
                 g.Recurrence = Recurrence.Daily;
@@ -934,7 +952,10 @@ namespace Hadaf
         {
             GoalId = g.Id, Title = g.Title, Category = g.Category, At = now,
             OnTime = !g.Due.HasValue || now <= g.Due.Value,
+            HadDeadline = HasRealDeadline(g),
         };
+
+        static bool HasRealDeadline(Goal g) => g.Due.HasValue && !(g.IsDaily && g.AnyTime);
 
         void DeleteGoal(Goal g)
         {
@@ -959,7 +980,7 @@ namespace Hadaf
 
         void ShowSnack(string text, string actionText = null, Action action = null)
         {
-            SnackText.Text = text;
+            Emoji.Show(SnackText, text);
             snackAction = action;
             SnackAction.Content = actionText;
             SnackAction.Visibility = action != null ? Visibility.Visible : Visibility.Collapsed;
@@ -1033,7 +1054,7 @@ namespace Hadaf
             if (g != null) draft = Store.Clone(g);
             else
             {
-                draft = new Goal { Title = title ?? "", Category = cat ?? "personal" };
+                draft = new Goal { Title = title ?? "", Category = cat ?? Categories.Default };
                 if (view == "daily")
                 {
                     draft.Recurrence = Recurrence.Daily;
@@ -1094,8 +1115,8 @@ namespace Hadaf
             // Tidy the goal before storing it. The editor's pickers are still bound to it, so keep their
             // change handlers out of the way: otherwise clearing AnyTime would re-plan the deadline.
             syncing = true;
-            if (!Categories.Ids.Contains(d.Category))
-                d.Category = Categories.Ids.Contains(original?.Category) ? original.Category : "personal";
+            if (!Categories.Exists(d.Category))
+                d.Category = Categories.Exists(original?.Category) ? original.Category : Categories.Default;
             if (d.IsDaily)
             {
                 if (!d.Due.HasValue) d.Due = d.NextRun(DateTime.Today, true);
@@ -1354,7 +1375,9 @@ namespace Hadaf
 
             int total = h.Count;
             int week = h.Count(r => r.At >= today.AddDays(-6));
-            int onTime = total == 0 ? 0 : (int)Math.Round(100.0 * h.Count(r => r.OnTime) / total);
+            // Only goals that could be late count towards "on time".
+            var timed = h.Where(r => r.HadDeadline != false).ToList();
+            string onTime = timed.Count == 0 ? "–" : Math.Round(100.0 * timed.Count(r => r.OnTime) / timed.Count) + "%";
             var days = h.Select(r => r.At.Date).ToHashSet();
             int streak = 0;
             var d = days.Contains(today) ? today : today.AddDays(-1);
@@ -1364,7 +1387,7 @@ namespace Hadaf
             {
                 new Tile("", total.ToString(), L["s_total"], Palette.B(0xFF10B981)),
                 new Tile("", week.ToString(), L["s_week"], accent),
-                new Tile("", onTime + "%", L["s_ontime"], Palette.B(0xFFF59E0B)),
+                new Tile("", onTime, L["s_ontime"], Palette.B(0xFFF59E0B)),
                 new Tile("", streak.ToString(), L["s_streak"], Palette.B(0xFFEC4899)),
             };
 
@@ -1378,10 +1401,11 @@ namespace Hadaf
                 x.n == 0 ? 4 : 12 + 100.0 * x.n / max,
                 x.day == today ? accent : faded)).ToList();
 
-            CatStats.ItemsSource = Categories.Ids.Select(id =>
+            // Completions from a category that has since been deleted count as the fallback's, like its goals.
+            CatStats.ItemsSource = Categories.All.Select(c =>
             {
-                int n = h.Count(r => r.Category == id);
-                return new CatStat(L["cat_" + id], Categories.BrushOf(id), total == 0 ? 0 : 100.0 * n / total, n);
+                int n = h.Count(r => r.Category == c.Id || c.Id == Categories.Fallback && !Categories.Exists(r.Category));
+                return new CatStat(Categories.NameOf(c), Categories.BrushOf(c.Id), total == 0 ? 0 : 100.0 * n / total, n);
             }).ToList();
         }
 
@@ -1392,6 +1416,7 @@ namespace Hadaf
             CloseDrawer();
             HideSnack();
             SyncSettingsUi();
+            FillCategoryEditor();
             ShowPage(SettingsPage);
         }
 
@@ -1399,6 +1424,8 @@ namespace Hadaf
 
         void CloseSettings()
         {
+            // A category name still being typed (Esc or Back pressed in the box) counts too.
+            if (Keyboard.FocusedElement is TextBox { DataContext: CatRow } box) CommitCategoryName(box);
             Save();
             ShowPage(HomePage);
         }
@@ -1409,6 +1436,8 @@ namespace Hadaf
             LangChips.SelectedValue = S.Lang;
             ThemeChips.SelectedValue = S.Theme;
             FxChips.SelectedValue = S.Effect;
+            AccentChips.SelectedValue = Palette.TryParse(S.Accent, out _) ? S.Accent.ToUpperInvariant() : "system";
+            AccentName.Text = (AccentChips.SelectedItem as Opt)?.Name;
             OpacitySlider.Value = S.Transparency;
             OpacitySlider.IsEnabled = Theme.GlassSupported && S.Effect != "solid";
             GlassNote.Visibility = Theme.GlassSupported ? Visibility.Collapsed : Visibility.Visible;
@@ -1434,8 +1463,31 @@ namespace Hadaf
                 else S.Effect = v;
                 Theme.Apply(this, S);
                 RefreshCards();
+                FillAccentChips();
                 SyncSettingsUi();
             }
+            Save();
+        }
+
+        /// <summary>The accent choices, each shown as the app will use it in the current theme.</summary>
+        void FillAccentChips()
+        {
+            Opt Swatch(string key, string name, Color c) => new() { Key = key, Name = name, Brush = new SolidColorBrush(Theme.Legible(c)) };
+            suppress = true;
+            AccentChips.ItemsSource = new[] { Swatch("system", L["accent_system"], Theme.SystemAccent) }
+                .Concat(Palette.Swatches.Select(s => Swatch(Palette.Hex(s.Argb), L["col_" + s.Key],
+                    Color.FromRgb((byte)(s.Argb >> 16), (byte)(s.Argb >> 8), (byte)s.Argb))))
+                .ToList();
+            suppress = false;
+        }
+
+        void Accent_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (suppress || AccentChips.SelectedValue is not string v) return;
+            S.Accent = v;
+            Theme.Apply(this, S);
+            RefreshCards();
+            SyncSettingsUi();
             Save();
         }
 
@@ -1592,5 +1644,235 @@ namespace Hadaf
 
         void UpdateBackupInfo() =>
             BackupInfo.Text = Store.LastBackup is DateTime t ? L.F("last_backup", L.FormatDate(t)) : L["no_backup_yet"];
+
+        // ---- export & import ----
+
+        static string Documents => Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+        void Export_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new SaveFileDialog
+            {
+                Filter = L["file_filter"], DefaultExt = ".json", InitialDirectory = Documents,
+                FileName = $"Hadaf-{DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}.json",
+            };
+            if (dialog.ShowDialog(this) == true) ExportTo(dialog.FileName);
+        }
+
+        void ExportTo(string path)
+        {
+            try
+            {
+                Store.Export(data, path);
+                ShowSnack(L.F("exported", Path.GetFileName(path)));
+            }
+            catch (Exception ex)
+            {
+                ShowSnack(L.F("export_failed", Describe(ex)));
+            }
+        }
+
+        void Import_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog { Filter = L["file_filter"], InitialDirectory = Documents };
+            if (dialog.ShowDialog(this) == true) ImportFrom(dialog.FileName);
+        }
+
+        /// <summary>
+        /// Takes the goals, history and categories from an exported file. What it replaces is backed up first and
+        /// can be brought straight back with Undo.
+        /// </summary>
+        void ImportFrom(string path)
+        {
+            var incoming = Store.ReadForImport(path);
+            if (incoming == null)
+            {
+                ShowSnack(L["import_invalid"]);
+                return;
+            }
+            Save();
+            Store.BackupNow();
+            var before = (Goals: data.Goals.ToList(), History: data.History.ToList(), Categories: S.Categories);
+            ReplaceData(incoming.Goals, incoming.History, incoming.Settings.Categories);
+            ShowSnack(L.F("imported", L.Goals(incoming.Goals.Count)), L["undo"],
+                () => ReplaceData(before.Goals, before.History, before.Categories));
+        }
+
+        void ReplaceData(List<Goal> goals, List<CompletionRecord> history, List<CategoryDef> categories)
+        {
+            data.Goals.Clear();
+            data.Goals.AddRange(goals);
+            data.History.Clear();
+            data.History.AddRange(history);
+            S.Categories = categories;
+            PrepareData();
+            RollDailies();
+            CategoriesChanged();
+            UpdateBackupInfo();
+        }
+
+        // ---- categories ----
+
+        /// <summary>
+        /// Brings loaded or imported data up to date: the categories in use, goals pointing at a category that is
+        /// gone, and completion records from before "HadDeadline" was kept (worked out from their goal).
+        /// </summary>
+        void PrepareData()
+        {
+            S.Categories = Categories.Use(S.Categories);
+            foreach (var g in data.Goals.Where(g => !Categories.Exists(g.Category))) g.Category = Categories.Fallback;
+            foreach (var r in data.History.Where(r => r.HadDeadline == null))
+            {
+                var g = data.Goals.FirstOrDefault(x => x.Id == r.GoalId);
+                r.HadDeadline = g == null || HasRealDeadline(g); // a deleted goal keeps counting, as it did
+            }
+        }
+
+        /// <summary>The menu's category entries and the editor's category chips.</summary>
+        void FillCategoryLists()
+        {
+            cats.Clear();
+            cats.AddRange(Categories.All.Select(c =>
+                new NavItem { Key = c.Id, IsCat = true, Brush = Categories.BrushOf(c.Id), Name = Categories.NameOf(c) }));
+            suppress = true;
+            CatList.ItemsSource = null;
+            CatList.ItemsSource = cats;
+            CatList.SelectedItem = cats.FirstOrDefault(c => c.Key == cat);
+            suppress = false;
+            UpdateCounts();
+
+            // Detached while rebuilt, for the same reason as the other pickers (see ApplyLanguage).
+            var editing = EditorForm.DataContext;
+            syncing = true;
+            EditorForm.DataContext = null;
+            CatChips.ItemsSource = Categories.All
+                .Select(c => new Opt { Key = c.Id, Name = Categories.NameOf(c), Brush = Categories.BrushOf(c.Id) }).ToList();
+            EditorForm.DataContext = editing;
+            syncing = false;
+        }
+
+        void FillCategoryEditor()
+        {
+            var colors = Palette.Swatches
+                .Select(s => new Opt { Key = Palette.Hex(s.Argb), Name = L["col_" + s.Key], Brush = Palette.B(s.Argb) }).ToList();
+            CatEditor.ItemsSource = Categories.All.Select(c => new CatRow { Def = c, Colors = colors }).ToList();
+            AddCatBtn.Visibility = Categories.All.Count < Categories.Max ? Visibility.Visible : Visibility.Collapsed;
+            CatDesc.Text = L.F("cat_desc", Categories.NameOf(Categories.Fallback));
+        }
+
+        /// <summary>
+        /// After a category was added, renamed, recoloured or deleted. A rename or new colour only refreshes its own
+        /// editor row, so a click already on its way to that row isn't lost to a rebuilt list.
+        /// </summary>
+        void CategoriesChanged(CatRow changed = null)
+        {
+            if (cat != null && !Categories.Exists(cat))
+            {
+                cat = null;
+                view = "all";
+                suppress = true;
+                NavList.SelectedIndex = 0;
+                suppress = false;
+            }
+            FillCategoryLists();
+            if (changed != null) changed.RefreshAll();
+            else FillCategoryEditor();
+            RefreshCards();
+            Refresh();
+            Save();
+        }
+
+        void CatColor_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is CatRow row) row.Picking = !row.Picking;
+        }
+
+        void CatSwatch_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is not ListBox { DataContext: CatRow row, SelectedValue: string hex }
+                || string.Equals(hex, row.Def.Color, StringComparison.OrdinalIgnoreCase)) return;
+            row.Def.Color = hex;
+            row.Picking = false;
+            CategoriesChanged(row);
+        }
+
+        void CatName_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter) return;
+            CommitCategoryName((TextBox)sender);
+            e.Handled = true;
+        }
+
+        void CatName_LostFocus(object sender, RoutedEventArgs e) => CommitCategoryName((TextBox)sender);
+
+        /// <summary>Emptying a built-in category's name (or typing its own) gives it back its name in the current language.</summary>
+        void CommitCategoryName(TextBox box)
+        {
+            if (box.DataContext is not CatRow row) return;
+            var def = row.Def;
+            var text = box.Text.Trim();
+            bool builtIn = Categories.IsBuiltIn(def.Id);
+            string name = text.Length == 0 || builtIn && text == Categories.DefaultName(def.Id) ? null : text;
+            if (name == null && !builtIn) name = def.Name; // an added category always keeps a name
+            if (name != def.Name)
+            {
+                def.Name = name;
+                CategoriesChanged(row);
+            }
+            box.SetCurrentValue(TextBox.TextProperty, row.Name); // the name in effect, e.g. the built-in one again
+        }
+
+        void AddCategory_Click(object sender, RoutedEventArgs e)
+        {
+            if (Categories.All.Count >= Categories.Max) return;
+            var used = Categories.All.Select(c => c.Color?.ToUpperInvariant()).ToHashSet();
+            var color = Palette.Swatches.Select(s => Palette.Hex(s.Argb)).FirstOrDefault(h => !used.Contains(h))
+                        ?? Palette.Hex(Palette.Swatches[0].Argb);
+            var def = new CategoryDef { Id = "c" + Guid.NewGuid().ToString("N")[..8], Name = L["new_category"], Color = color };
+            int fallback = S.Categories.FindIndex(c => c.Id == Categories.Fallback);
+            S.Categories.Insert(fallback >= 0 ? fallback : S.Categories.Count, def); // "Other" stays last
+            CategoriesChanged();
+            // Straight into naming it.
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var row = CatEditor.ItemContainerGenerator.ContainerFromIndex(S.Categories.IndexOf(def));
+                if (FindChild<TextBox>(row) is TextBox box)
+                {
+                    box.Focus();
+                    box.SelectAll();
+                }
+            }), DispatcherPriority.Loaded);
+        }
+
+        /// <summary>Its goals move to the fallback category; Undo puts both back.</summary>
+        void CatDelete_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is not CatRow { CanDelete: true } row) return;
+            var def = row.Def;
+            int index = S.Categories.IndexOf(def);
+            var moved = data.Goals.Where(g => g.Category == def.Id).ToList();
+            S.Categories.Remove(def);
+            foreach (var g in moved) g.Category = Categories.Fallback;
+            CategoriesChanged();
+            ShowSnack(L.F("cat_deleted", Categories.NameOf(def)), L["undo"], () =>
+            {
+                if (Categories.Exists(def.Id)) return;
+                S.Categories.Insert(Math.Min(index, S.Categories.Count), def);
+                foreach (var g in moved.Where(g => g.Category == Categories.Fallback)) g.Category = def.Id;
+                CategoriesChanged();
+            });
+        }
+
+        static T FindChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            if (parent == null) return null;
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T found) return found;
+                if (FindChild<T>(child) is T deeper) return deeper;
+            }
+            return null;
+        }
     }
 }
