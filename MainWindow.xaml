@@ -712,6 +712,23 @@
 
                             <TextBlock Text="{local:L about}" FontSize="12" Foreground="{DynamicResource Faint}"
                                        HorizontalAlignment="Center" Margin="0,24,0,0"/>
+                            <!-- Credit: the maker's name links to their GitHub page -->
+                            <TextBlock FontSize="12" Foreground="{DynamicResource Faint}" HorizontalAlignment="Center" Margin="0,4,0,0">
+                                <Run Text="{local:L made_by}"/>
+                                <Hyperlink NavigateUri="https://github.com/PRISMO-TR" RequestNavigate="Credit_RequestNavigate"
+                                           AutomationProperties.HelpText="https://github.com/PRISMO-TR">
+                                    <Hyperlink.Style>
+                                        <Style TargetType="Hyperlink">
+                                            <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
+                                            <Setter Property="TextDecorations" Value="{x:Null}"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="TextDecorations" Value="Underline"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Hyperlink.Style>PRISMO-TR</Hyperlink>
+                            </TextBlock>
                         </StackPanel>
                     </ScrollViewer>
                 </Grid>

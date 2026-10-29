@@ -1,9 +1,11 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Navigation;
 using System.Windows.Threading;
 
 namespace Hadaf
@@ -23,6 +25,14 @@ namespace Hadaf
         }
 
         void SettingsBack_Click(object sender, RoutedEventArgs e) => CloseSettings();
+
+        /// <summary>The credit's link opens the maker's GitHub page in the browser.</summary>
+        void Credit_RequestNavigate(object sender, RequestNavigateEventArgs e)
+        {
+            try { Process.Start(new ProcessStartInfo { FileName = e.Uri.AbsoluteUri, UseShellExecute = true }); }
+            catch { }
+            e.Handled = true;
+        }
 
         void CloseSettings()
         {

@@ -237,6 +237,7 @@ namespace Hadaf
             ["fx_desc"] = new[] { "الأكريليك يُظهر ما خلف النافذة، والميكا يأخذ لون خلفية سطح المكتب",
                                   "Acrylic shows what is behind the window; Mica picks up your wallpaper colour" },
             ["about"] = new[] { "كويست · الإصدار 1.4", "Quest · version 1.4" },
+            ["made_by"] = new[] { "صُنع بواسطة", "Made by" },
             ["overdue_n"] = new[] { "{0} متأخر", "{0} overdue" },
             ["empty_action"] = new[] { "أضف هدفاً", "Add a goal" },
 
