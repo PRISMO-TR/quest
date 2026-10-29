@@ -26,7 +26,7 @@
                 <!-- Everything the hover buttons do, reachable by right-click, touch-and-hold, Shift+F10 or the menu key -->
                 <local:Card.ContextMenu>
                     <ContextMenu>
-                        <MenuItem Header="{local:L edit}" Click="CtxEdit_Click"/>
+                        <MenuItem Header="{local:L edit}" Click="Edit_Click"/>
                         <MenuItem Header="{Binding DoneActionText}" Click="CtxDone_Click"/>
                         <MenuItem Header="{local:L ctx_snooze}" Click="CtxSnooze_Click"
                                   Visibility="{Binding CanSnooze, Converter={StaticResource B2V}}"/>
@@ -79,7 +79,8 @@
                         <ProgressBar Style="{StaticResource Bar}" Margin="0,12,0,2" Value="{Binding Progress, Mode=OneWay}"
                                      Visibility="{Binding HasSubTasks, Converter={StaticResource B2V}}"/>
                         <ItemsControl ItemsSource="{Binding SubTasks}" Margin="0,8,0,0"
-                                      Visibility="{Binding Expanded, Converter={StaticResource B2V}}">
+                                      Visibility="{Binding Expanded, Converter={StaticResource B2V}}"
+                                      Background="Transparent" MouseLeftButtonUp="StepList_MouseLeftButtonUp">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <local:ActionCheckBox Style="{StaticResource Check.Round}" IsChecked="{Binding Done}" Click="Sub_Click"
@@ -103,8 +104,7 @@
                         </Border>
                         <StackPanel x:Name="actions" Orientation="Horizontal" HorizontalAlignment="Right"
                                     Margin="0,-3,-6,0" Visibility="Hidden">
-                            <Button Style="{StaticResource Btn.IconSm}" Content="&#xE9D5;" AutomationProperties.Name="{local:L steps}" Click="Expand_Click"
-                                    Visibility="{Binding HasSubTasks, Converter={StaticResource B2V}}"/>
+                            <Button Style="{StaticResource Btn.IconSm}" Content="&#xE70F;" AutomationProperties.Name="{local:L edit}" Click="Edit_Click"/>
                             <Button Style="{StaticResource Btn.IconSm}" Content="&#xE74D;" AutomationProperties.Name="{local:L delete}" Click="Delete_Click"/>
                         </StackPanel>
                     </Grid>

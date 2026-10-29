@@ -191,6 +191,21 @@ namespace Hadaf
 
         void Card_Click(object sender, MouseButtonEventArgs e)
         {
+            if (GoalOf(sender) is Goal g) OpenStepsOrEditor(g);
+        }
+
+        /// <summary>A goal with steps opens or closes them in place; one without steps opens the editor.</summary>
+        void OpenStepsOrEditor(Goal g)
+        {
+            if (g.HasSubTasks) g.Expanded = !g.Expanded;
+            else OpenEditor(g);
+        }
+
+        // A click that just misses a step's tick box stays in the list, instead of folding it away.
+        void StepList_MouseLeftButtonUp(object sender, MouseButtonEventArgs e) => e.Handled = true;
+
+        void Edit_Click(object sender, RoutedEventArgs e)
+        {
             if (GoalOf(sender) is Goal g) OpenEditor(g);
         }
 
@@ -218,23 +233,21 @@ namespace Hadaf
 
         // ---- keyboard and right-click on a card ----
 
-        /// <summary>Enter opens, Space ticks, Delete removes; Shift+F10 or the menu key opens the card's menu.</summary>
+        /// <summary>
+        /// Enter does what a click does (steps, or the editor), Space ticks, Delete removes; Shift+F10 or the menu key
+        /// opens the card's menu.
+        /// </summary>
         void Card_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.OriginalSource != sender || GoalOf(sender) is not Goal g) return;
             switch (e.Key)
             {
-                case Key.Enter: OpenEditor(g); break;
+                case Key.Enter: OpenStepsOrEditor(g); break;
                 case Key.Space: ToggleDone(g); break;
                 case Key.Delete: DeleteGoal(g); break;
                 default: return;
             }
             e.Handled = true;
-        }
-
-        void CtxEdit_Click(object sender, RoutedEventArgs e)
-        {
-            if (GoalOf(sender) is Goal g) OpenEditor(g);
         }
 
         void CtxDone_Click(object sender, RoutedEventArgs e)
