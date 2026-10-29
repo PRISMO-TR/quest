@@ -7,6 +7,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using Microsoft.Win32;
 
 namespace Hadaf
@@ -151,27 +152,45 @@ namespace Hadaf
 
         static string Documents => Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
-        void Export_Click(object sender, RoutedEventArgs e)
+        /// <summary>Settings → Export: every goal.</summary>
+        void Export_Click(object sender, RoutedEventArgs e) =>
+            AskAndExport(data, $"Quest-{DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
+
+        /// <summary>A card's menu → Export: just that goal, in a file named after it.</summary>
+        void CtxExport_Click(object sender, RoutedEventArgs e)
+        {
+            if (GoalOf(sender) is Goal g) AskAndExport(Planner.Part(data, new[] { g }), FileNameFor(g.Title));
+        }
+
+        void AskAndExport(AppData what, string name)
         {
             var dialog = new SaveFileDialog
             {
-                Filter = L["file_filter"], DefaultExt = ".json", InitialDirectory = Documents,
-                FileName = $"Quest-{DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}.json",
+                Filter = L["file_filter"], DefaultExt = ".json", InitialDirectory = Documents, FileName = name + ".json",
             };
-            if (dialog.ShowDialog(this) == true) ExportTo(dialog.FileName);
+            if (dialog.ShowDialog(this) == true) ExportTo(what, dialog.FileName);
         }
 
-        void ExportTo(string path)
+        void ExportTo(AppData what, string path)
         {
             try
             {
-                Store.Export(data, path);
+                Store.Export(what, path);
                 ShowSnack(L.F("exported", Path.GetFileName(path)));
             }
             catch (Exception ex)
             {
                 ShowSnack(L.F("export_failed", Describe(ex)));
             }
+        }
+
+        /// <summary>A goal's title as a file name: characters Windows won't take become dashes, and it's kept short.</summary>
+        static string FileNameFor(string title)
+        {
+            var bad = Path.GetInvalidFileNameChars();
+            var name = new string((title ?? "").Select(c => bad.Contains(c) ? '-' : c).ToArray()).Trim(' ', '.', '-');
+            if (name.Length > 80) name = name[..(char.IsHighSurrogate(name[79]) ? 79 : 80)].TrimEnd(' ', '.', '-');
+            return name.Length > 0 ? name : "Quest";
         }
 
         void Import_Click(object sender, RoutedEventArgs e)
@@ -181,17 +200,124 @@ namespace Hadaf
         }
 
         /// <summary>
-        /// Takes the goals, history and categories from an exported file. What it replaces is backed up first and
-        /// can be brought straight back with Undo.
+        /// A file with one goal adds it straight away; one with more opens the import page, to pick the goals to add
+        /// (or to replace all the user's goals with the file's).
         /// </summary>
         void ImportFrom(string path)
         {
             var incoming = Store.ReadForImport(path);
-            if (incoming == null)
+            if (incoming == null) ShowSnack(L["import_invalid"]);
+            else if (incoming.Goals.Count == 0) ShowSnack(L["import_empty"]);
+            else if (incoming.Goals.Count == 1) AddImported(incoming, incoming.Goals);
+            else OpenImport(incoming, path);
+        }
+
+        /// <summary>Adds goals from a file to the user's, with Undo.</summary>
+        void AddImported(AppData file, List<Goal> chosen)
+        {
+            var added = Planner.AddGoals(data, file, chosen, DateTime.Now);
+            if (added.Goals.Count == 0)
             {
-                ShowSnack(L["import_invalid"]);
+                ShowSnack(chosen.Count == 1 ? L.F("import_have_one", chosen[0].Title) : L["import_have_all"]);
                 return;
             }
+            CategoriesChanged();
+            ShowSnack(added.Goals.Count == 1 ? L.F("import_added_one", added.Goals[0].Title) : L.F("import_added", L.Goals(added.Goals.Count)),
+                L["undo"], () =>
+                {
+                    Planner.RemoveAdded(data, added);
+                    CategoriesChanged();
+                });
+        }
+
+        // ---- the import page ----
+
+        void OpenImport(AppData file, string path)
+        {
+            importFile = file;
+            var have = data.Goals.Select(g => g.Id).ToHashSet();
+            var open = Planner.SortedFor("all", file.Goals.Where(g => !g.Done));
+            importRows = open.Concat(Planner.SortedFor("done", file.Goals.Where(g => g.Done))).Select(g =>
+            {
+                bool isNew = !have.Contains(g.Id);
+                var (name, brush) = ImportedCategory(file, g.Category);
+                var when = g.Done ? L.F("done_fmt", L.FormatDate(g.CompletedAt ?? g.CreatedAt))
+                    : g.IsDaily ? g.RepeatText : g.Due.HasValue ? g.DueText : null;
+                var meta = new[] { name, when, g.HasSubTasks ? g.ProgressText : null, isNew ? null : L["import_have"] };
+                return new ImportRow
+                {
+                    Goal = g, IsNew = isNew, Picked = isNew, Brush = brush,
+                    Meta = string.Join("  ·  ", meta.Where(m => !string.IsNullOrEmpty(m))),
+                };
+            }).ToList();
+            // The count first: an English file name ahead of Arabic text would split "4" from "أهداف".
+            ImportSource.Text = $"{L.Goals(file.Goals.Count)}  ·  {Path.GetFileName(path)}";
+            ImportList.ItemsSource = importRows;
+            UpdateImport();
+            ImportScroll.ScrollToTop();
+            HideSnack();
+            ShowPage(ImportPage);
+        }
+
+        /// <summary>A goal's category as it will show once imported: the user's own if they have it, else the file's.</summary>
+        static (string Name, Brush Brush) ImportedCategory(AppData file, string id)
+        {
+            if (Categories.Exists(id)) return (Categories.NameOf(id), Categories.BrushOf(id));
+            var def = file.Settings.Categories?.FirstOrDefault(c => c?.Id == id) ?? new CategoryDef { Id = id };
+            return (Categories.NameOf(def), Palette.B(Palette.TryParse(def.Color, out var argb) ? argb : 0xFF64748B));
+        }
+
+        /// <summary>The Add button counts what is picked; Select all shows whether everything new is.</summary>
+        void UpdateImport()
+        {
+            var fresh = importRows.Where(r => r.IsNew).ToList();
+            int picked = fresh.Count(r => r.Picked);
+            ImportAddBtn.Content = L.F("import_add_n", picked);
+            ImportAddBtn.IsEnabled = picked > 0;
+            ImportAll.IsEnabled = fresh.Count > 0;
+            ImportAll.IsChecked = fresh.Count > 0 && picked == fresh.Count;
+        }
+
+        void ImportPick_Click(object sender, RoutedEventArgs e) => UpdateImport();
+
+        void ImportAll_Click(object sender, RoutedEventArgs e)
+        {
+            bool all = ImportAll.IsChecked == true;
+            foreach (var r in importRows.Where(r => r.IsNew)) r.Picked = all;
+            UpdateImport();
+        }
+
+        void ImportAdd_Click(object sender, RoutedEventArgs e)
+        {
+            var file = importFile;
+            var chosen = importRows.Where(r => r.IsNew && r.Picked).Select(r => r.Goal).ToList();
+            CloseImport();
+            if (chosen.Count > 0) AddImported(file, chosen);
+        }
+
+        void ImportReplace_Click(object sender, RoutedEventArgs e)
+        {
+            var file = importFile;
+            CloseImport();
+            ReplaceWith(file);
+        }
+
+        void CloseImport_Click(object sender, RoutedEventArgs e) => CloseImport();
+
+        void CloseImport()
+        {
+            importFile = null;
+            importRows = null;
+            ImportList.ItemsSource = null;
+            ShowPage(SettingsPage);
+        }
+
+        /// <summary>
+        /// Takes the goals, history and categories from an exported file instead of the user's. What it replaces is
+        /// backed up first and can be brought straight back with Undo.
+        /// </summary>
+        void ReplaceWith(AppData incoming)
+        {
             Save();
             Store.BackupNow();
             var before = (Goals: data.Goals.ToList(), History: data.History.ToList(), Categories: S.Categories);

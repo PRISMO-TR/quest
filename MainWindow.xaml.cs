@@ -43,6 +43,8 @@ namespace Hadaf
         Exception saveError;        // last failed save; retried every tick until it goes through
         string noticeKey;           // which message the notice bar is showing ("load" / "save")
         Action noticeAction;
+        AppData importFile;         // the file the import page lists
+        List<ImportRow> importRows;
 
         public MainWindow()
         {
@@ -278,6 +280,7 @@ namespace Hadaf
             {
                 if (drawerOpen) CloseDrawer();
                 else if (page == EditorPage) CloseEditor();
+                else if (page == ImportPage) CloseImport();
                 else if (page == SettingsPage) CloseSettings();
                 else if (searchOpen) ToggleSearch(false);
                 else return;
@@ -295,7 +298,8 @@ namespace Hadaf
         {
             if (next == page) return;
             var prev = page;
-            bool forward = next != HomePage;
+            // Pages open from the list, and the import page from settings; anything else is a way back.
+            bool forward = prev == HomePage || next == ImportPage;
             page = next;
             // The menu belongs to the list; while editing or in settings, leaving goes through Back/Close
             // (so a half-written goal can't be dropped by jumping elsewhere).

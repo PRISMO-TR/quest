@@ -43,6 +43,20 @@ namespace Hadaf
         public string DeleteLabel => Loc.I.F("a11y_cat_delete", Name);
     }
 
+    /// <summary>A goal in a file being imported, as the import page lists it.</summary>
+    public class ImportRow : Notify
+    {
+        bool _picked;
+        public Goal Goal { get; init; }
+        /// <summary>Not one of the user's goals yet; one they already have can't be picked.</summary>
+        public bool IsNew { get; init; }
+        public bool Picked { get => _picked; set => Set(ref _picked, value); }
+        /// <summary>The colour of its category, as it will show once imported.</summary>
+        public Brush Brush { get; init; }
+        /// <summary>Category · when · steps, and whether the user already has it.</summary>
+        public string Meta { get; init; }
+    }
+
     /// <summary>Section title inside the goal list ("Overdue 2", "Daily 1/3" …).</summary>
     public class GroupHeader
     {

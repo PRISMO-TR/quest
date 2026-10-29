@@ -396,5 +396,86 @@ namespace Hadaf.Tests
             Assert.Equal("False,False,True,True", string.Join(",", data.History.Select(r => r.HadDeadline)),
                 "any-time daily, no deadline, timed, deleted goal");
         }
+
+        // ================= exporting and importing some goals =================
+
+        static AppData Prepared()
+        {
+            var data = new AppData();
+            Planner.Prepare(data); // the built-in categories
+            return data;
+        }
+
+        static string Ids(IEnumerable<CategoryDef> categories) => string.Join(",", categories.Select(c => c.Id));
+
+        [Test]
+        static void AFileOfOneGoalHoldsItsHistoryAndCategory()
+        {
+            var data = Prepared();
+            data.Settings.Categories.Insert(0, new CategoryDef { Id = "cpts", Name = "CPTS", Color = "#14B8A6" });
+            Planner.Prepare(data);
+            var module = new Goal { Title = "Footprinting", Category = "cpts" };
+            module.SubTasks.Add(new SubTask { Title = "Introduction", IsHeading = true });
+            var other = new Goal { Title = "bills", Category = "finance" };
+            data.Goals.AddRange(new[] { module, other });
+            data.History.Add(new CompletionRecord { GoalId = module.Id, At = Now });
+            data.History.Add(new CompletionRecord { GoalId = other.Id, At = Now });
+
+            var part = Planner.Part(data, new[] { module });
+            Assert.Equal("Footprinting", Titles(part.Goals), "just that goal");
+            Assert.False(ReferenceEquals(module, part.Goals[0]), "a copy, not the goal itself");
+            Assert.True(part.Goals[0].SubTasks[0].IsHeading, "with its steps as they are");
+            Assert.Equal(module.Id, part.History.Single().GoalId, "its history only");
+            Assert.Equal("cpts", Ids(part.Settings.Categories), "the category it uses");
+            Categories.Use(null);
+        }
+
+        [Test]
+        static void ImportAddsNewGoalsAndLeavesTheRestAlone()
+        {
+            var data = Prepared();
+            var mine = new Goal { Title = "mine", Category = "work", Due = Now.AddDays(1) };
+            data.Goals.Add(mine);
+            var file = new AppData();
+            var same = Store.Clone(mine);
+            same.Title = "changed elsewhere";
+            var late = new Goal { Title = "late", Category = "cpts", Due = Now.AddDays(-1) };
+            var soon = new Goal { Title = "soon", Category = "cpts", Due = Now.AddDays(2), NotifiedBefore = true, NotifiedDue = true };
+            file.Goals.AddRange(new[] { same, late, soon });
+            file.History.Add(new CompletionRecord { GoalId = soon.Id, At = Now.AddDays(-3) });
+            file.Settings.Categories = new() { new CategoryDef { Id = "cpts", Name = "CPTS", Color = "#14B8A6" } };
+
+            var added = Planner.AddGoals(data, file, file.Goals, Now);
+            Assert.Equal("late, soon", Titles(added.Goals), "only the goals that weren't here");
+            Assert.Equal("mine, late, soon", Titles(data.Goals), "the one already here left as it is");
+            Assert.Equal("work,study,personal,health,finance,cpts,other", Ids(data.Settings.Categories), "their category, before the fallback");
+            Assert.True(Categories.Exists("cpts"), "and in use");
+            Assert.Equal(1, data.History.Count, "with their history");
+            Assert.True(late.NotifiedBefore && late.NotifiedDue, "no reminder for a deadline already gone");
+            Assert.False(soon.NotifiedBefore || soon.NotifiedDue, "reminders still to come");
+
+            Planner.RemoveAdded(data, added);
+            Assert.Equal("mine", Titles(data.Goals), "undo takes the goals out");
+            Assert.Equal(0, data.History.Count, "and their history");
+            Assert.False(Categories.Exists("cpts"), "and their category");
+            Categories.Use(null);
+        }
+
+        [Test]
+        static void ImportedGoalShowsAsOtherWhenThereIsNoRoomForItsCategory()
+        {
+            var data = Prepared();
+            for (int i = data.Settings.Categories.Count; i < Categories.Max; i++)
+                data.Settings.Categories.Insert(0, new CategoryDef { Id = "c" + i, Color = "#3B82F6" });
+            Planner.Prepare(data);
+            var file = new AppData();
+            file.Goals.Add(new Goal { Title = "x", Category = "cpts" });
+            file.Settings.Categories = new() { new CategoryDef { Id = "cpts", Color = "#14B8A6" } };
+
+            var added = Planner.AddGoals(data, file, file.Goals, Now);
+            Assert.Equal(Categories.Max, data.Settings.Categories.Count, "no room for another category");
+            Assert.Equal(Categories.Fallback, added.Goals.Single().Category, "so it shows as the fallback");
+            Categories.Use(null);
+        }
     }
 }

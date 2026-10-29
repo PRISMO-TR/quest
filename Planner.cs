@@ -342,5 +342,66 @@ namespace Hadaf
                 r.HadDeadline = g == null || HasRealDeadline(g); // a deleted goal keeps counting, as it did
             }
         }
+
+        /// <summary>
+        /// What a file of some of the goals holds: copies of them, their completion records and the categories they
+        /// use, so they look the same wherever they are imported.
+        /// </summary>
+        public static AppData Part(AppData data, IEnumerable<Goal> goals)
+        {
+            var part = new AppData { Settings = new Settings { Categories = new() } };
+            part.Goals.AddRange(goals.Select(g => Store.Clone(g)));
+            var ids = part.Goals.Select(g => g.Id).ToHashSet();
+            part.History.AddRange(data.History.Where(r => r.GoalId != null && ids.Contains(r.GoalId)).Select(r => Store.Clone(r)));
+            var used = part.Goals.Select(g => g.Category).ToHashSet();
+            part.Settings.Categories.AddRange((data.Settings.Categories ?? new()).Where(c => used.Contains(c.Id)).Select(c => Store.Clone(c)));
+            return part;
+        }
+
+        /// <summary>What adding goals from a file put in, so Undo can take it out again.</summary>
+        public sealed record Added(List<Goal> Goals, List<CompletionRecord> History, List<CategoryDef> Categories);
+
+        /// <summary>
+        /// Adds goals from an imported file, leaving everything already here as it is: a goal that is already here
+        /// (the same goal, by its id) is left out. The categories the goals need come along while there is room
+        /// (otherwise they show as the fallback), and so do their completion records. Reminders come as for a goal
+        /// just saved: not for a deadline that has already passed.
+        /// </summary>
+        public static Added AddGoals(AppData data, AppData file, IEnumerable<Goal> chosen, DateTime now)
+        {
+            var have = data.Goals.Select(g => g.Id).ToHashSet();
+            var goals = chosen.Where(g => have.Add(g.Id)).ToList();
+
+            var categories = new List<CategoryDef>();
+            foreach (var id in goals.Select(g => g.Category).Distinct())
+            {
+                var def = file.Settings.Categories?.FirstOrDefault(c => c?.Id == id);
+                if (def == null || Categories.Exists(id) || data.Settings.Categories.Count + categories.Count >= Categories.Max) continue;
+                categories.Add(def);
+            }
+            int fallback = data.Settings.Categories.FindIndex(c => c.Id == Categories.Fallback);
+            data.Settings.Categories.InsertRange(fallback >= 0 ? fallback : data.Settings.Categories.Count, categories);
+
+            var ids = goals.Select(g => g.Id).ToHashSet();
+            var seen = data.History.Select(r => (r.GoalId, r.At)).ToHashSet();
+            var history = file.History.Where(r => r.GoalId != null && ids.Contains(r.GoalId) && seen.Add((r.GoalId, r.At))).ToList();
+
+            foreach (var g in goals) g.NotifiedBefore = g.NotifiedDue = g.Due.HasValue && g.Due.Value <= now;
+            data.Goals.AddRange(goals);
+            data.History.AddRange(history);
+            Prepare(data);
+            RollDailies(goals, now);
+            return new Added(goals, history, categories);
+        }
+
+        /// <summary>Takes out what <see cref="AddGoals"/> put in, even goals edited since (they are found by id).</summary>
+        public static void RemoveAdded(AppData data, Added added)
+        {
+            var ids = added.Goals.Select(g => g.Id).ToHashSet();
+            data.Goals.RemoveAll(g => ids.Contains(g.Id));
+            foreach (var r in added.History) data.History.Remove(r);
+            foreach (var c in added.Categories) data.Settings.Categories.Remove(c);
+            Prepare(data);
+        }
     }
 }
