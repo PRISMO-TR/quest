@@ -132,11 +132,8 @@ namespace Hadaf
             if (RollDailies()) Save();
             ApplyLanguage();
             ReportLoadIssue();
+            OfferStartWithWindows();
             Dispatcher.BeginInvoke(new Action(CheckReminders), DispatcherPriority.ApplicationIdle);
-            // Startup allocates a lot of one-off memory (XAML parsing, JIT); hand it back once idle.
-            var trim = new DispatcherTimer(DispatcherPriority.ApplicationIdle) { Interval = TimeSpan.FromSeconds(3) };
-            trim.Tick += (s, e) => { trim.Stop(); Native.Trim(); };
-            trim.Start();
         }
 
         // ================= window / tray =================
@@ -320,13 +317,20 @@ namespace Hadaf
             PlaceSnack();
         }
 
+        // Each animation frame repaints whatever changed, and with CPU rendering that repaint is the whole cost
+        // of a transition. 30 fps over ~150 ms still reads as smooth, for a fraction of the work of 60 fps.
+        const int AnimFps = 30;
+
         static void Slide(FrameworkElement el, double fromOpacity, double toOpacity, double fromX, double toX, Action done)
         {
-            var time = TimeSpan.FromMilliseconds(200);
+            var time = TimeSpan.FromMilliseconds(150);
             var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
             var fade = new DoubleAnimation(fromOpacity, toOpacity, time) { EasingFunction = ease };
+            var move = new DoubleAnimation(fromX, toX, time) { EasingFunction = ease };
+            Timeline.SetDesiredFrameRate(fade, AnimFps);
+            Timeline.SetDesiredFrameRate(move, AnimFps);
             if (done != null) fade.Completed += (s, e) => done();
-            el.RenderTransform.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(fromX, toX, time) { EasingFunction = ease });
+            el.RenderTransform.BeginAnimation(TranslateTransform.XProperty, move);
             el.BeginAnimation(OpacityProperty, fade);
         }
 
@@ -341,22 +345,27 @@ namespace Hadaf
         void OpenDrawer()
         {
             drawerOpen = true;
+            // The dim layer appears at once: fading it would repaint the whole window on every frame. The
+            // blurred shadow is the costliest thing to repaint, so it only comes in once the sheet has stopped.
             DrawerOverlay.Visibility = Visibility.Visible;
-            var time = TimeSpan.FromMilliseconds(220);
-            DrawerShift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(-(Drawer.Width + 16), 0, time)
-            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
-            DrawerScrim.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, time));
+            DrawerShadow.Visibility = Visibility.Hidden;
+            var slide = new DoubleAnimation(-(Drawer.Width + 16), 0, TimeSpan.FromMilliseconds(170))
+            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+            Timeline.SetDesiredFrameRate(slide, AnimFps);
+            slide.Completed += (s, e) => { if (drawerOpen) DrawerShadow.Visibility = Visibility.Visible; };
+            DrawerShift.BeginAnimation(TranslateTransform.XProperty, slide);
         }
 
         void CloseDrawer()
         {
             if (!drawerOpen) return;
             drawerOpen = false;
-            var time = TimeSpan.FromMilliseconds(160);
-            var slide = new DoubleAnimation(-(Drawer.Width + 16), time) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
+            DrawerShadow.Visibility = Visibility.Hidden;
+            var slide = new DoubleAnimation(-(Drawer.Width + 16), TimeSpan.FromMilliseconds(130))
+            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
+            Timeline.SetDesiredFrameRate(slide, AnimFps);
             slide.Completed += (s, e) => { if (!drawerOpen) DrawerOverlay.Visibility = Visibility.Collapsed; };
             DrawerShift.BeginAnimation(TranslateTransform.XProperty, slide);
-            DrawerScrim.BeginAnimation(OpacityProperty, new DoubleAnimation(0, time));
         }
 
         void DrawerScrim_MouseDown(object sender, MouseButtonEventArgs e) => CloseDrawer();
@@ -545,6 +554,7 @@ namespace Hadaf
 
         void Refresh()
         {
+            OfferStartWithWindows();
             UpdateStreaks();
             UpdateCounts();
             bool stats = view == "stats", daily = view == "daily";
@@ -1311,6 +1321,8 @@ namespace Hadaf
             else if (sender == TraySwitch) S.CloseToTray = on;
             else if (sender == StartupSwitch)
             {
+                S.StartupAsked = true;
+                if (noticeKey == "startup") HideNotice();
                 try { AutoStart.Set(on); } catch { StartupSwitch.IsChecked = AutoStart.IsEnabled(); }
             }
             Save();
@@ -1333,7 +1345,7 @@ namespace Hadaf
             }
             bool firstFailure = saveError == null;
             saveError = error;
-            ShowNotice("save", true, L["save_failed_title"], L.F("save_failed_text", Describe(error)), L["retry"], Save);
+            ShowNotice("save", "danger", L["save_failed_title"], L.F("save_failed_text", Describe(error)), L["retry"], Save);
             if (firstFailure && !IsVisible) App.Notify(L["save_failed_title"], error.Message);
         }
 
@@ -1352,15 +1364,16 @@ namespace Hadaf
             var issue = Store.Issue;
             if (issue == null) return;
             if (issue.Kind == LoadProblem.RestoredFromBackup)
-                ShowNotice("load", false, L["load_problem_title"],
+                ShowNotice("load", "warn", L["load_problem_title"],
                     L.F("load_restored_text", L.FormatDate(issue.BackupTime ?? DateTime.Now)), L["open_data_folder"], OpenDataFolder);
             else
-                ShowNotice("load", true, L["load_problem_title"], L["load_failed_text"], L["open_data_folder"], OpenDataFolder);
+                ShowNotice("load", "danger", L["load_problem_title"], L["load_failed_text"], L["open_data_folder"], OpenDataFolder);
             // The damaged file is already set aside; make the recovered data the main file again.
             Save();
         }
 
-        void ShowNotice(string key, bool danger, string title, string text, string actionText = null, Action action = null)
+        /// <summary>Shows the notice bar. <paramref name="tone"/> is "info", "warn" or "danger".</summary>
+        void ShowNotice(string key, string tone, string title, string text, string actionText = null, Action action = null)
         {
             noticeKey = key;
             noticeAction = action;
@@ -1368,10 +1381,46 @@ namespace Hadaf
             NoticeText.Text = text;
             NoticeAction.Content = actionText;
             NoticeAction.Visibility = action != null ? Visibility.Visible : Visibility.Collapsed;
-            Notice.SetResourceReference(Border.BackgroundProperty, danger ? "DangerSoft" : "WarnSoft");
-            Notice.SetResourceReference(Border.BorderBrushProperty, danger ? "DangerStroke" : "WarnStroke");
-            NoticeIcon.SetResourceReference(TextBlock.ForegroundProperty, danger ? "Danger" : "Warn");
+            var (fill, stroke, ink, icon) = tone switch
+            {
+                "danger" => ("DangerSoft", "DangerStroke", "Danger", ""),
+                "warn" => ("WarnSoft", "WarnStroke", "Warn", ""),
+                _ => ("AccentSoft", "InfoStroke", "Accent", ""),
+            };
+            Notice.SetResourceReference(Border.BackgroundProperty, fill);
+            Notice.SetResourceReference(Border.BorderBrushProperty, stroke);
+            NoticeIcon.SetResourceReference(TextBlock.ForegroundProperty, ink);
+            NoticeIcon.Text = icon;
             Notice.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Reminders only fire while the app runs, so once there is something to be reminded of, offer
+        /// (one time) to start it with Windows, hidden in the tray.
+        /// </summary>
+        void OfferStartWithWindows()
+        {
+            if (S.StartupAsked || noticeKey != null || !data.Goals.Any(g => !g.Done && g.Due.HasValue)) return;
+            if (AutoStart.IsEnabled())
+            {
+                S.StartupAsked = true;
+                return;
+            }
+            ShowNotice("startup", "info", L["startup_title"], L["startup_text"], L["startup_enable"], () =>
+            {
+                S.StartupAsked = true;
+                try
+                {
+                    AutoStart.Set(true);
+                    ShowSnack(L["startup_done"]);
+                }
+                catch
+                {
+                    ShowSnack(L["startup_failed"]);
+                }
+                HideNotice("startup");
+                Save();
+            });
         }
 
         void HideNotice(string key = null)
@@ -1383,7 +1432,16 @@ namespace Hadaf
         }
 
         void NoticeAction_Click(object sender, RoutedEventArgs e) => noticeAction?.Invoke();
-        void NoticeClose_Click(object sender, RoutedEventArgs e) => HideNotice();
+        void NoticeClose_Click(object sender, RoutedEventArgs e)
+        {
+            if (noticeKey == "startup")
+            {
+                // "Not now" is an answer too: don't keep asking.
+                S.StartupAsked = true;
+                Save();
+            }
+            HideNotice();
+        }
         void OpenDataFolder_Click(object sender, RoutedEventArgs e) => OpenDataFolder();
 
         static void OpenDataFolder()

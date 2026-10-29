@@ -87,9 +87,9 @@
                         </Border>
                         <StackPanel x:Name="actions" Orientation="Horizontal" HorizontalAlignment="Right"
                                     Margin="0,-3,-6,0" Visibility="Hidden">
-                            <Button Style="{StaticResource Btn.IconSm}" Content="&#xE9D5;" Click="Expand_Click"
+                            <Button Style="{StaticResource Btn.IconSm}" Content="&#xE9D5;" AutomationProperties.Name="{local:L steps}" Click="Expand_Click"
                                     Visibility="{Binding HasSubTasks, Converter={StaticResource B2V}}"/>
-                            <Button Style="{StaticResource Btn.IconSm}" Content="&#xE74D;" Click="Delete_Click"/>
+                            <Button Style="{StaticResource Btn.IconSm}" Content="&#xE74D;" AutomationProperties.Name="{local:L delete}" Click="Delete_Click"/>
                         </StackPanel>
                     </Grid>
                 </Grid>
@@ -173,7 +173,7 @@
                 <TextBox Grid.Column="1" Style="{StaticResource Input.Bare}" Margin="12,0,8,0"
                          Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"/>
                 <Button x:Name="remove" Grid.Column="2" Style="{StaticResource Btn.IconSm}" Content="&#xE711;" FontSize="10"
-                        Visibility="Hidden" Click="RemoveStep_Click"/>
+                        Visibility="Hidden" AutomationProperties.Name="{local:L a11y_remove_step}" Click="RemoveStep_Click"/>
             </Grid>
             <DataTemplate.Triggers>
                 <Trigger SourceName="row" Property="IsMouseOver" Value="True">
@@ -237,15 +237,15 @@
             <!-- ============ Title bar: menu flush at the leading edge, window buttons at the other ============ -->
             <Grid>
                 <StackPanel Orientation="Horizontal">
-                    <Button x:Name="MenuBtn" Style="{StaticResource Btn.Caption}" Content="&#xE700;" FontSize="16" Click="Menu_Click"/>
+                    <Button x:Name="MenuBtn" AutomationProperties.Name="{local:L a11y_menu}" Style="{StaticResource Btn.Caption}" Content="&#xE700;" FontSize="16" Click="Menu_Click"/>
                     <Image Source="pack://application:,,,/Assets/hadaf.png" Width="16" Height="16" Margin="4,0,0,0"
                            RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center"/>
                     <TextBlock Text="{local:L app}" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Style="{StaticResource Btn.Caption}" Content="&#xE921;" Click="Min_Click"/>
-                    <Button x:Name="MaxBtn" Style="{StaticResource Btn.Caption}" Content="&#xE922;" Click="Max_Click"/>
-                    <Button Style="{StaticResource Btn.CaptionClose}" Content="&#xE8BB;" Click="Close_Click"/>
+                    <Button Style="{StaticResource Btn.Caption}" Content="&#xE921;" AutomationProperties.Name="{local:L a11y_minimize}" Click="Min_Click"/>
+                    <Button x:Name="MaxBtn" Style="{StaticResource Btn.Caption}" Content="&#xE922;" AutomationProperties.Name="{local:L a11y_maximize}" Click="Max_Click"/>
+                    <Button Style="{StaticResource Btn.CaptionClose}" Content="&#xE8BB;" AutomationProperties.Name="{local:L close}" Click="Close_Click"/>
                 </StackPanel>
             </Grid>
 
@@ -263,7 +263,7 @@
                     </Grid.RowDefinitions>
 
                     <DockPanel Margin="20,12,12,0">
-                        <Button x:Name="SearchToggle" DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Content="&#xE721;"
+                        <Button x:Name="SearchToggle" AutomationProperties.Name="{local:L a11y_search}" DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Content="&#xE721;"
                                 VerticalAlignment="Top" Margin="0,2,0,0" Click="SearchToggle_Click"/>
                         <StackPanel>
                             <TextBlock x:Name="ViewTitle" Style="{StaticResource T.Display}"/>
@@ -279,7 +279,7 @@
                                 <TextBlock x:Name="NoticeIcon" DockPanel.Dock="Left" Style="{StaticResource T.Icon}" Text="&#xE7BA;"
                                            VerticalAlignment="Top" Margin="0,2,10,0"/>
                                 <Button DockPanel.Dock="Right" Style="{StaticResource Btn.IconSm}" Content="&#xE711;" FontSize="10"
-                                        VerticalAlignment="Top" Margin="8,-4,0,0" Click="NoticeClose_Click"/>
+                                        VerticalAlignment="Top" Margin="8,-4,0,0" AutomationProperties.Name="{local:L a11y_dismiss}" Click="NoticeClose_Click"/>
                                 <StackPanel>
                                     <TextBlock x:Name="NoticeTitle" FontWeight="SemiBold" TextWrapping="Wrap"/>
                                     <TextBlock x:Name="NoticeText" Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,2,0,0"/>
@@ -359,7 +359,7 @@
                         <TextBox x:Name="QuickAdd" Style="{StaticResource Input.Composer}" KeyDown="QuickAdd_KeyDown"/>
                         <Button Style="{StaticResource Btn.Primary}" Width="32" Height="32" Padding="0" local:UI.Radius="16"
                                 HorizontalAlignment="Right" Margin="0,0,6,0" FontFamily="{StaticResource Icons}" FontSize="14"
-                                Content="&#xE710;" Click="ComposerOpen_Click"/>
+                                Content="&#xE710;" AutomationProperties.Name="{local:L a11y_add}" Click="ComposerOpen_Click"/>
                     </Grid>
                 </Grid>
 
@@ -375,7 +375,7 @@
 
                     <DockPanel Margin="12,6,20,6">
                         <Button DockPanel.Dock="Left" Style="{StaticResource Btn.Icon}" Content="&#xE711;" FontSize="14"
-                                Click="CloseEditor_Click"/>
+                                AutomationProperties.Name="{local:L cancel}" Click="CloseEditor_Click"/>
                         <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Primary}" Content="{local:L save}"
                                 Padding="20,0" Click="Save_Click"/>
                         <TextBlock x:Name="EditorTitle" Style="{StaticResource T.Subtitle}" Margin="8,0" VerticalAlignment="Center"
@@ -431,9 +431,9 @@
                                         </WrapPanel>
                                         <StackPanel x:Name="CalendarPanel" HorizontalAlignment="Center" Margin="0,16,0,0">
                                             <DockPanel Margin="0,0,0,8">
-                                                <Button x:Name="CalPrev" DockPanel.Dock="Left" Style="{StaticResource Btn.IconSm}"
+                                                <Button x:Name="CalPrev" AutomationProperties.Name="{local:L a11y_prev_month}" DockPanel.Dock="Left" Style="{StaticResource Btn.IconSm}"
                                                         FontSize="11" Click="CalPrev_Click"/>
-                                                <Button x:Name="CalNext" DockPanel.Dock="Right" Style="{StaticResource Btn.IconSm}"
+                                                <Button x:Name="CalNext" AutomationProperties.Name="{local:L a11y_next_month}" DockPanel.Dock="Right" Style="{StaticResource Btn.IconSm}"
                                                         FontSize="11" Click="CalNext_Click"/>
                                                 <TextBlock x:Name="CalTitle" HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            FontWeight="SemiBold"/>
@@ -510,7 +510,7 @@
                     </Grid.RowDefinitions>
 
                     <DockPanel Margin="12,6,20,6">
-                        <Button x:Name="SettingsBack" DockPanel.Dock="Left" Style="{StaticResource Btn.Icon}" FontSize="14"
+                        <Button x:Name="SettingsBack" AutomationProperties.Name="{local:L a11y_back}" DockPanel.Dock="Left" Style="{StaticResource Btn.Icon}" FontSize="14"
                                 Click="SettingsBack_Click"/>
                         <TextBlock Style="{StaticResource T.Subtitle}" Text="{local:L settings}" Margin="8,0"
                                    VerticalAlignment="Center"/>
@@ -600,7 +600,7 @@
                     <TranslateTransform x:Name="DrawerShift"/>
                 </Grid.RenderTransform>
                 <Border CornerRadius="{StaticResource R.Overlay}" Background="{DynamicResource Surface}"
-                        Effect="{DynamicResource ShadowLg}"/>
+                        Effect="{DynamicResource ShadowLg}" x:Name="DrawerShadow"/>
                 <Border CornerRadius="{StaticResource R.Overlay}" Background="{DynamicResource Surface}"
                         BorderBrush="{DynamicResource CardStroke}" BorderThickness="1">
                     <DockPanel>
@@ -617,7 +617,7 @@
                             <Border Style="{StaticResource Rule}"/>
                             <DockPanel Margin="8">
                                 <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Content="&#xE706;"
-                                        Click="ThemeToggle_Click"/>
+                                        AutomationProperties.Name="{local:L a11y_theme}" Click="ThemeToggle_Click"/>
                                 <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Subtle}" Padding="10,0" FontSize="13"
                                         Foreground="{DynamicResource SubText}" Content="{local:L lang_switch}" Click="Lang_Click"/>
                                 <Button Style="{StaticResource Btn.Subtle}" Height="40" HorizontalContentAlignment="Left"

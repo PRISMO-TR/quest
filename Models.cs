@@ -227,6 +227,8 @@ namespace Hadaf
         public bool Notifications { get; set; } = true;
         public bool CloseToTray { get; set; } = true;
         public bool TrayHintShown { get; set; }
+        /// <summary>The user has answered the start-with-Windows offer (either way).</summary>
+        public bool StartupAsked { get; set; }
         // Last window bounds; 0 width means "never saved".
         public double WinLeft { get; set; }
         public double WinTop { get; set; }

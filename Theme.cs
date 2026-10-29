@@ -117,6 +117,7 @@ namespace Hadaf
             uint a = (uint)(accent.R << 16 | accent.G << 8 | accent.B);
             R["Accent"] = B(0xFF000000 | a);
             R["AccentSoft"] = B(0x2E000000 | a);
+            R["InfoStroke"] = B(0x52000000 | a);
             // Pick whichever text colour has the higher contrast ratio against the accent.
             double la = Luminance(accent);
             R["AccentText"] = (la + 0.05) / 0.05 > 1.05 / (la + 0.05) ? B(0xFF14161F) : B(0xFFFFFFFF);
@@ -234,7 +235,10 @@ namespace Hadaf
 
     public static class AutoStart
     {
-        const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+        // Test runs (HADAF_DATA_DIR) write to a key Windows never reads, so they can't change what starts with Windows.
+        static string RunKey => Environment.GetEnvironmentVariable("HADAF_DATA_DIR") == null
+            ? @"Software\Microsoft\Windows\CurrentVersion\Run"
+            : @"Software\Hadaf\TestRun";
 
         public static bool IsEnabled()
         {

@@ -18,7 +18,8 @@
     <!-- keep the footprint small -->
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <ServerGarbageCollection>false</ServerGarbageCollection>
-    <TieredPGO>true</TieredPGO>
+    <!-- profile-guided JIT pays off in long-running servers, not in a small app that idles in the tray -->
+    <TieredPGO>false</TieredPGO>
     <DebugType>none</DebugType>
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>

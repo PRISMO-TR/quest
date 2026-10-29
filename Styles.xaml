@@ -44,6 +44,7 @@
     <SolidColorBrush x:Key="Scrim" Color="#59000000"/>
     <SolidColorBrush x:Key="Accent" Color="#A78BFA"/>
     <SolidColorBrush x:Key="AccentSoft" Color="#2EA78BFA"/>
+    <SolidColorBrush x:Key="InfoStroke" Color="#52A78BFA"/>
     <SolidColorBrush x:Key="AccentText" Color="#14161F"/>
     <SolidColorBrush x:Key="Danger" Color="#F87171"/>
     <SolidColorBrush x:Key="DangerSoft" Color="#26F87171"/>
