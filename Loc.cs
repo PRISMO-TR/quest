@@ -236,7 +236,7 @@ namespace Hadaf
             ["set_startup_desc"] = new[] { "يبدأ مخفياً بجانب الساعة", "Starts hidden in the tray" },
             ["fx_desc"] = new[] { "الأكريليك يُظهر ما خلف النافذة، والميكا يأخذ لون خلفية سطح المكتب",
                                   "Acrylic shows what is behind the window; Mica picks up your wallpaper colour" },
-            ["about"] = new[] { "كويست · الإصدار 1.3", "Quest · version 1.3" },
+            ["about"] = new[] { "كويست · الإصدار 1.4", "Quest · version 1.4" },
             ["overdue_n"] = new[] { "{0} متأخر", "{0} overdue" },
             ["empty_action"] = new[] { "أضف هدفاً", "Add a goal" },
 

@@ -6,14 +6,14 @@ Goals and daily tasks for Windows: deadlines, steps, reminders, streaks. WPF on 
 
 ## Features
 
-- **Goals** with a deadline, a priority, a category and steps with a progress bar.
+- **Goals** with a deadline, a priority, a category and steps with a progress bar; part headings group the steps.
 - **Daily tasks** that renew every day (or on chosen weekdays), with a streak of days in a row.
 - **Repeating goals**, weekly or monthly; a monthly goal keeps its day of the month (31st → 28th → 31st).
 - **Today**: what is late, due today or done today. Postpone to tomorrow, and Undo after every tick.
 - **Reminders** before and at the deadline; runs in the tray and can start with Windows.
 - **Statistics**: completions, the last seven days, the on-time share and the day streak.
 - **Categories and accent colour** of your own; colour emoji in titles.
-- **Your data stays safe**: saves that can't half-fail, hourly backups, export and import.
+- **Your data stays safe**: saves that can't half-fail, hourly backups, export and import of all goals or just one.
 - Arabic and English (right to left), dark and light, glass on Windows 11, high-contrast themes,
   Windows text size, keyboard and screen reader support.
 
@@ -60,8 +60,13 @@ no test framework to download.
 `%APPDATA%\Quest\data.json`, with hourly backups in `%APPDATA%\Quest\backups` (newest 20 kept).
 An unreadable data file is never overwritten: it is kept as `data.unreadable-*.json` and the newest good backup is restored.
 
-Settings → Export writes a readable copy to a file of your choice; Import replaces the goals, history and categories
-with such a file's, after taking a backup of the current ones (and offers Undo).
+Settings → Export writes a readable copy of all goals to a file of your choice, and Export in a card's right-click
+menu writes just that goal. Import adds goals from such a file: a single goal straight away, or the ones you pick from
+a list; the same page can instead replace all goals, history and categories with the file's, after taking a backup
+of the current ones (and offers Undo).
+
+If a packaged (MSIX) app starts Quest, Windows keeps every new file Quest saves under AppData in that app's private
+storage, where Quest started normally never looks. Quest checks where its files land and warns when that happens.
 
 ## Testing without touching real data
 
